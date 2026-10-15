@@ -1,26 +1,28 @@
 # zepp-better-spotify-remote
 
-Пульт для Spotify на часах с Zepp OS. Сделан потому, что Music Controller из магазина каждый раз секунд пять пишет «загрузка», выглядит так себе и не умеет в кнопки. Этот открывается сразу (показывает последнее состояние, свежее подтягивает в фоне), на фоне обложка трека, сверху часы.
+[Русская версия](README-ru.md)
 
-Экраны: скринсейвер (обложка, часы, тап — пауза, двойной тап слева/справа — назад/вперёд), управление (кольцо прогресса вокруг play, лайк, текущий плейлист, выбор устройства и громкость), свайп вверх — библиотека с «Любимыми треками» и недавними плейлистами. Пока играет музыка, экран не гаснет; на паузе гаснет через 3 минуты. Делал под себя и Amazfit Active 3 Premium, на других круглых часах с Zepp OS 3.6+ скорее всего тоже заведётся, но не проверял. Интерфейс на русском.
+Spotify remote for Zepp OS watches. Made it because Music Controller from the store says "loading" for like five seconds every time, doesn't look great and ignores the hardware buttons. This one opens instantly (shows the last known state, fetches fresh data in the background), puts the track cover in the background and a clock on top.
 
-## Установка
+Screens: screensaver (cover, clock; tap = pause, double tap left/right = previous/next), controls (progress ring around play, like, current playlist, device picker with volume), swipe up for the library with Liked Songs and recent playlists. The screen stays on while music plays and times out after 3 minutes on pause. Built for myself and an Amazfit Active 3 Premium; other round Zepp OS 3.6+ watches will probably work, not tested. The UI is in Russian.
 
-Нужны Node.js, Spotify Premium (без него API не даёт управлять воспроизведением) и режим разработчика в приложении Zepp.
+## Install
 
-1. Создайте приложение на [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard): тип **Web API**, Redirect URI ровно `http://127.0.0.1:8888/callback`. В настройках приложения возьмите Client ID и Client Secret.
-2. Соберите ключи (откроется браузер, войдите в Spotify):
+You need Node.js, Spotify Premium (the API won't control playback without it) and developer mode in the Zepp app.
+
+1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard): **Web API**, Redirect URI exactly `http://127.0.0.1:8888/callback`. Grab the Client ID and Client Secret from its settings.
+2. Get your tokens (a browser opens, log in to Spotify):
    ```bash
    npm i
    node tools/spotify-auth.mjs <CLIENT_ID> <CLIENT_SECRET>
    ```
-   Скрипт запишет всё в `app-side/secrets.js`. Он в `.gitignore`, не коммитьте его.
-3. Поставьте на часы:
+   This writes `app-side/secrets.js`. It's in `.gitignore`, don't commit it.
+3. Put it on the watch:
    ```bash
    npm i -g @zeppos/zeus-cli
    zeus login
    zeus preview
    ```
-   Выберите свои часы и отсканируйте QR-код в Zepp: Профиль → Developer Mode → Scan.
+   Pick your watch and scan the QR code in Zepp: Profile → Developer Mode → Scan.
 
-Носите часы на правой руке — поставьте `rightHandMode = true` в `shared/config.js` и пересоберите: Up — пауза, Down — следующий трек, Select — переключение экранов. Иконки рисует `tools/make_assets.py` (`python tools/make_assets.py`), если захотите поменять.
+Wearing the watch on your right hand? Set `rightHandMode = true` in `shared/config.js` and rebuild: Up = pause, Down = next track, Select = switch screens. Icons are drawn by `tools/make_assets.py` (`python tools/make_assets.py`) if you want to tweak them.
