@@ -2,6 +2,7 @@
   "name": "zepp-better-spotify-remote",
   "version": "1.0.0",
   "private": true,
+  "license": "0BSD",
   "scripts": {
     "assets": "python -I tools/make_assets.py",
     "auth": "node tools/spotify-auth.mjs"
