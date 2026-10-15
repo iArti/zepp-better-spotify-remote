@@ -332,8 +332,7 @@ Page(
       return true;
     },
 
-    // Up = play/pause, Down = next, Select = switch screen
-    // (Down hold is taken by the system; previous track is a double tap on the left)
+    // Up = play/pause, Down = next (hold = previous track), Select = switch screen
     onKeyRightHand(key, keyEvent) {
       if (key === KEY_UP) {
         if (keyEvent === KEY_EVENT_CLICK) this.togglePlay();
@@ -341,7 +340,8 @@ Page(
       }
       if (key === KEY_DOWN) {
         if (keyEvent === KEY_EVENT_CLICK) this.command("next");
-        return keyEvent === KEY_EVENT_CLICK;
+        else if (keyEvent === KEY_EVENT_LONG_PRESS) this.command("prev");
+        return keyEvent === KEY_EVENT_CLICK || keyEvent === KEY_EVENT_LONG_PRESS;
       }
       if (key === KEY_SELECT) {
         if (keyEvent === KEY_EVENT_CLICK) {
