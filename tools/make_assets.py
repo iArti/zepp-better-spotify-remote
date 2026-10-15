@@ -180,7 +180,31 @@ def main():
     render_icon("like_add", 64, like_add)
     render_layers("like_done", 64, [(circle(0.5, 0.5, 0.49), (30, 215, 96)), (check, (18, 18, 18))])
     render_icon("queue", 54, queue)
-    render_icon("devices", 72, devices, (30, 215, 96))
+    render_icon("devices", 64, devices, (30, 215, 96))
+
+    # Active device type icons (Spotify Connect device.type). Glyphs span the full
+    # height of the box so they line up top and bottom with the like ring.
+    green = (30, 215, 96)
+    laptop = union(minus(rect(0.12, 0.02, 0.88, 0.74, 0.05), rect(0.20, 0.10, 0.80, 0.66)),
+                   rect(0.0, 0.82, 1.0, 0.98, 0.03))
+    phone = minus(minus(rect(0.24, 0.02, 0.76, 0.98, 0.10), rect(0.31, 0.11, 0.69, 0.80, 0.03)),
+                  circle(0.50, 0.89, 0.04))
+    tablet = minus(minus(rect(0.08, 0.02, 0.92, 0.98, 0.08), rect(0.16, 0.10, 0.84, 0.82, 0.03)),
+                   circle(0.50, 0.90, 0.035))
+    speaker_box = union(minus(rect(0.20, 0.02, 0.80, 0.98, 0.09), rect(0.27, 0.09, 0.73, 0.91, 0.05)),
+                        ring(0.50, 0.64, 0.14, 0.21), circle(0.50, 0.64, 0.06), circle(0.50, 0.25, 0.08))
+    tv = union(minus(rect(0.0, 0.02, 1.0, 0.76, 0.05), rect(0.07, 0.09, 0.93, 0.69)),
+               rect(0.43, 0.76, 0.57, 0.88), rect(0.22, 0.88, 0.78, 0.98, 0.04))
+    car = union(minus(poly([(0.24, 0.06), (0.76, 0.06), (0.90, 0.42), (0.10, 0.42)]),
+                      poly([(0.30, 0.14), (0.70, 0.14), (0.79, 0.40), (0.21, 0.40)])),
+                rect(0.0, 0.40, 1.0, 0.80, 0.08),
+                circle(0.24, 0.84, 0.14), circle(0.76, 0.84, 0.14))
+    render_icon("dev_computer", 64, laptop, green)
+    render_icon("dev_phone", 64, phone, green)
+    render_icon("dev_tablet", 64, tablet, green)
+    render_icon("dev_speaker", 64, speaker_box, green)
+    render_icon("dev_tv", 64, tv, green)
+    render_icon("dev_car", 64, car, green)
     render_icon("knob", 18, circle(0.5, 0.5, 0.5))
     # app icon: green disc with a dark play triangle
     render_layers("icon", 248, [(circle(0.5, 0.5, 0.5), (30, 215, 96)),

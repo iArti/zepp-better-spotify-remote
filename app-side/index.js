@@ -133,6 +133,7 @@ function compactState(player) {
           name: player.device.name,
           volume: player.device.volume_percent,
           supportsVolume: player.device.supports_volume !== false,
+          type: player.device.type,
         }
       : null,
   };

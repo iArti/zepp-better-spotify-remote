@@ -54,6 +54,30 @@ const RING_LINE = 9;
 // ARC strokes inside its box, so the middle of the line is half a width in
 const KNOB_R = RING_R - RING_LINE / 2;
 
+// Bottom row: like and device mirrored around the center at the same height, queue below
+const BOTTOM_DX = 122;
+const BOTTOM_Y = 362;
+const QUEUE_Y = 399;
+
+// Spotify Connect device.type -> icon; anything else keeps the generic one
+const DEVICE_ICONS = {
+  Computer: "dev_computer.png",
+  Smartphone: "dev_phone.png",
+  Tablet: "dev_tablet.png",
+  Speaker: "dev_speaker.png",
+  CastAudio: "dev_speaker.png",
+  AudioDongle: "dev_speaker.png",
+  AVR: "dev_speaker.png",
+  TV: "dev_tv.png",
+  CastVideo: "dev_tv.png",
+  STB: "dev_tv.png",
+  Automobile: "dev_car.png",
+};
+
+function deviceIcon(device) {
+  return (device && DEVICE_ICONS[device.type]) || "devices.png";
+}
+
 // Centered if it fits; otherwise left-aligned and as wide as the text itself,
 // so nothing is cut with "..." and the tail goes past the screen edge
 function setSaverText(widgetRef, value, size, y, h) {
@@ -275,11 +299,13 @@ Page(
       iconButton(394, top + 240, 120, 84, "next.png", () => this.command("next"));
 
       // Bottom row: like, current playlist, devices
-      this.likeBtn = iconButton(117, top + 366, 96, 64, "like_add.png", () => this.toggleLike());
-      iconButton(240, top + 399, 90, 54, "queue.png", () =>
+      this.likeBtn = iconButton(240 - BOTTOM_DX, top + BOTTOM_Y, 96, 64, "like_add.png", () => this.toggleLike());
+      iconButton(240, top + QUEUE_Y, 90, 54, "queue.png", () =>
         push({ url: "page/queue/index" })
       );
-      iconButton(378, top + 354, 104, 72, "devices.png", () => push({ url: "page/devices/index" }));
+      this.deviceBtn = iconButton(240 + BOTTOM_DX, top + BOTTOM_Y, 96, 64, "devices.png", () =>
+        push({ url: "page/devices/index" })
+      );
 
       this.pageDots(top, 1);
     },
@@ -386,6 +412,7 @@ Page(
 
       this.playBtn.setProperty(prop.SRC, s.playing ? "pause.png" : "play.png");
       this.likeBtn.setProperty(prop.SRC, s.liked ? "like_done.png" : "like_add.png");
+      this.deviceBtn.setProperty(prop.SRC, deviceIcon(s.device));
       this.updateProgress();
       if (!fromCache) this.applyScreenPolicy(!!s.playing);
       if (!this.flashTimer) this.hideFlash();
