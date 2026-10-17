@@ -2,3 +2,4 @@ node_modules/
 dist/
 original/
 app-side/secrets.js
+assets/common.r/covers/

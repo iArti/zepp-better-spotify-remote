@@ -7,6 +7,7 @@ import { localStorage } from "@zos/storage";
 import { onGesture, offGesture, GESTURE_DOWN } from "@zos/interaction";
 import { W, GRAY, DARK, text, setText, iconButton, formatError } from "../../shared/ui";
 import { getThumbs } from "../../shared/thumbs";
+import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY } from "../../shared/local";
 
 const TOP = 100;
 const ROW_H = 124;
@@ -97,6 +98,11 @@ Page(
 
     play(method, params) {
       setText(this.status, "");
+      // Starting something on Spotify leaves "music from the watch" mode
+      if (isWatchSource()) {
+        getLocal().stop();
+        setSource(SOURCE_SPOTIFY);
+      }
       this.request({ method, params }, { timeout: 10000 })
         .then(() => back())
         .catch((e) => setText(this.status, formatError(e)));

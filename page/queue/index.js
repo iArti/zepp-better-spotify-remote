@@ -2,9 +2,12 @@ import { BasePage } from "@zeppos/zml/base-page";
 import { createWidget, widget, event } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back } from "@zos/router";
+import { scrollTo } from "@zos/page";
 import { W, GRAY, GREEN, DARK, text, setText, listButton, title, formatError } from "../../shared/ui";
+import { getLocal, isWatchSource } from "../../shared/local";
 
-// Current playlist: what is playing now and what comes next
+// Current playlist: what is playing now and what comes next.
+// In "music from the watch" mode: the whole watch library in the configured order.
 
 const ROW_H = 96;
 const TOP = 110;
@@ -13,6 +16,10 @@ Page(
   BasePage({
     build() {
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
+      if (isWatchSource()) {
+        this.buildWatchList();
+        return;
+      }
       title("Текущий плейлист");
       this.status = text(60, 200, W - 120, 80, "Загрузка…", { size: 26, color: GRAY, wrap: true });
 
@@ -45,6 +52,31 @@ Page(
         y += ROW_H;
       });
       text(0, y, W, 120, "");
+    },
+
+    buildWatchList() {
+      const local = getLocal();
+      title("Музыка с часов");
+      if (!local.tracks.length) {
+        text(60, 200, W - 120, 80, local.scanning ? "Читаю теги…" : "Нет музыки на часах", {
+          size: 26,
+          color: GRAY,
+          wrap: true,
+        });
+        return;
+      }
+
+      local.tracks.forEach((t, i) => {
+        const item = { name: t.title, sub: [t.artist, t.album].filter(Boolean).join(" · ") };
+        this.row(TOP + i * ROW_H, item, () => {
+          local.playIndex(i);
+          back();
+        }, { current: i === local.index });
+      });
+      text(0, TOP + local.tracks.length * ROW_H, W, 120, "");
+
+      // Start with the current track in view
+      if (local.index > 1) scrollTo({ y: -px(TOP + (local.index - 1) * ROW_H) });
     },
 
     row(y, item, onClick, opts = {}) {

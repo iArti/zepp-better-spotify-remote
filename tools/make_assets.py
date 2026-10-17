@@ -205,6 +205,12 @@ def main():
     render_icon("dev_speaker", 64, speaker_box, green)
     render_icon("dev_tv", 64, tv, green)
     render_icon("dev_car", 64, car, green)
+    # "Music from the watch": round watch with straps and hands
+    watch = union(rect(0.33, 0.02, 0.67, 0.24, 0.04), rect(0.33, 0.76, 0.67, 0.98, 0.04),
+                  minus(circle(0.5, 0.5, 0.34), circle(0.5, 0.5, 0.26)),
+                  rect(0.475, 0.33, 0.525, 0.53, 0.02), rect(0.475, 0.475, 0.64, 0.525, 0.02),
+                  rect(0.84, 0.44, 0.90, 0.56, 0.02))
+    render_icon("dev_watch", 64, watch, green)
     render_icon("knob", 18, circle(0.5, 0.5, 0.5))
     # app icon: green disc with a dark play triangle
     render_layers("icon", 248, [(circle(0.5, 0.5, 0.5), (30, 215, 96)),

@@ -26,3 +26,19 @@ You need Node.js, Spotify Premium (the API won't control playback without it) an
    Pick your watch and scan the QR code in Zepp: Profile → Developer Mode → Scan.
 
 Wearing the watch on your right hand? Set `rightHandMode = true` in `shared/config.js` and rebuild: Up = pause, Down = next track, Select = switch screens. Icons are drawn by `tools/make_assets.py` (`python tools/make_assets.py`) if you want to tweak them.
+
+## Experimental: music from the watch
+
+Devices → "Музыка с часов" plays the tracks you uploaded to the watch with the stock Zepp Music app, through your Bluetooth headphones, no phone needed. The current-playlist button turns into the list of those tracks; sort order is `localSort` in `shared/config.js` (`"name"`, `"artist"` or `"album"`, non-Latin titles go first).
+
+It's experimental because it only works thanks to an oversight in the watch's file sandbox: the app reaches the system music folder through `data://../../../Downloads/Music/list`. A firmware update can close that any day. Tags are read straight from the files on the watch.
+
+Covers are optional and a bit of a hassle: the watch can't decode the JPEGs inside MP3s, so they're prepared on the PC and baked into the app. Point the script at the same folder you upload from, then rebuild:
+
+```bash
+python tools/import_covers.py "path/to/your/music"
+```
+
+It needs ffmpeg on PATH and writes `assets/common.r/covers/` (gitignored). Each cover adds ~30 KB to the install.
+
+`applyOptimizations` in `shared/config.js` polls Spotify less often on the screensaver (15 s while playing, 30 s on pause) to save battery. Off by default, because pauses and skips made on other devices then show up late.

@@ -1,5 +1,6 @@
 import { BaseApp } from "@zeppos/zml/base-app";
 import { localStorage } from "@zos/storage";
+import { create, id } from "@zos/media";
 import { getThumbs } from "./shared/thumbs";
 
 App(
@@ -12,6 +13,11 @@ App(
       onThumb: null,
       // Receives image files from the phone; see shared/files.js
       handleFile: null,
+      // "Music from the watch": the media player is created here so it belongs to
+      // the app, not to a page (a page-owned player breaks when another page opens)
+      createPlayer: null,
+      mediaPlayer: null,
+      local: null,
     },
 
     onCreate() {
@@ -21,6 +27,12 @@ App(
         this.globalData.state = null;
       }
       this.globalData.handleFile = (file) => this.handleFile(file);
+      this.globalData.createPlayer = () => create(id.PLAYER);
+      try {
+        this.globalData.mediaPlayer = create(id.PLAYER);
+      } catch (e) {
+        console.log("media player create failed", e);
+      }
     },
 
     // zml owns the TransferFile inbox and hands us each incoming file
@@ -64,6 +76,8 @@ App(
       if (this.globalData.onCover) this.globalData.onCover(file.filePath, coverId);
     },
 
-    onDestroy() {},
+    onDestroy() {
+      if (this.globalData.local) this.globalData.local.stop();
+    },
   })
 );
