@@ -69,6 +69,8 @@ export function formatError(err) {
   if (msg.includes("auth_failed")) return "Ошибка входа в Spotify";
   if (msg.includes("NO_ACTIVE_DEVICE") || msg.includes("404")) return "Нет активного устройства";
   if (msg.includes("PREMIUM_REQUIRED") || msg.includes("403")) return "Нужен Spotify Premium";
+  if (msg.includes("simplezepp_unpaired")) return "SimpleZepp: нужна повторная привязка";
+  if (msg.includes("simplezepp")) return "SimpleZepp не отвечает";
   if (msg.toLowerCase().includes("timeout")) return "Нет связи с телефоном";
   return "Ошибка: " + msg.slice(0, 40);
 }

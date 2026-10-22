@@ -1,5 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN } from "./secrets";
+import { bridge } from "./bridge";
 
 const API = "https://api.spotify.com/v1";
 const REFRESH_TOKEN_KEY = "spotify_refresh_token";
@@ -391,6 +392,14 @@ const handlers = {
   },
 };
 
+// Optional SimpleZepp bridge (phone media volume); works without Spotify credentials
+const bridgeHandlers = {
+  bridge_status: () => bridge.status(),
+  bridge_pair: () => bridge.pair(),
+  bridge_volume: () => bridge.volume(),
+  bridge_volume_set: ({ percent }) => bridge.setVolume(Math.max(0, Math.min(100, Math.round(percent)))),
+};
+
 AppSideService(
   BaseSideService({
     onInit() {
@@ -398,12 +407,12 @@ AppSideService(
     },
 
     onRequest(req, res) {
-      const handler = handlers[req.method];
+      const handler = handlers[req.method] || bridgeHandlers[req.method];
       if (!handler) {
         res("unknown_method");
         return;
       }
-      if (!SPOTIFY_CLIENT_ID || !SPOTIFY_REFRESH_TOKEN) {
+      if (handlers[req.method] && (!SPOTIFY_CLIENT_ID || !SPOTIFY_REFRESH_TOKEN)) {
         res("no_credentials");
         return;
       }

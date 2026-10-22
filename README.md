@@ -42,3 +42,7 @@ python tools/import_covers.py "path/to/your/music"
 It needs ffmpeg on PATH and writes `assets/common.r/covers/` (gitignored). Each cover adds ~30 KB to the install.
 
 `applyOptimizations` in `shared/config.js` polls Spotify less often on the screensaver (15 s while playing, 30 s on pause) to save battery. Off by default, because pauses and skips made on other devices then show up late.
+
+## Optional: SimpleZepp for phone volume
+
+Spotify won't let anyone change the volume of a phone through its API. If [SimpleZepp](https://github.com/iArti/SimpleZepp) is installed on the same phone, the devices screen shows a "Подключить SimpleZepp" row; tap it, allow the request in the notification on the phone, and the volume controls work for Spotify on the phone too. Without SimpleZepp nothing changes.

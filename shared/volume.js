@@ -1,35 +1,86 @@
 import { getLocal, isWatchSource } from "./local";
 
 const SEND_DELAY_MS = 350;
-export const VOLUME_STEP = 10;
+export const VOLUME_STEP = 5;
 
-// Volume of the current source: the watch player or the active Spotify device.
-// Spotify can't change the volume of phones (supports_volume = false).
+function globalData() {
+  const app = getApp();
+  return app.globalData || (app._options && app._options.globalData);
+}
+
+// Optional SimpleZepp state, filled by the devices page:
+// { available, paired, pairing, volume (phone media volume %, or null) }
+export function getBridge() {
+  const g = globalData();
+  if (!g.bridge) g.bridge = { available: false, paired: false, pairing: false, volume: null };
+  return g.bridge;
+}
+
+// Spotify plays on this phone and can't change its volume: SimpleZepp can
+export function wantsBridge() {
+  if (isWatchSource()) return false;
+  const s = globalData().state;
+  const d = s && s.device;
+  return !!(d && d.type === "Smartphone" && d.supportsVolume === false);
+}
+
+export function usesBridge() {
+  return wantsBridge() && getBridge().paired;
+}
+
+// Volume of the current source: the watch player, the phone through SimpleZepp,
+// or the active Spotify device (Spotify can't change the volume of phones)
 export function createVolume(page, onUpdate) {
   const watch = isWatchSource();
-  const s = getApp().globalData.state;
+  const viaBridge = usesBridge();
+  const bridgeState = getBridge();
+  const s = globalData().state;
   const device = s && s.device;
-  const supported = watch || !!(device && device.supportsVolume !== false && typeof device.volume === "number");
-  let value = watch ? getLocal().getVolume() : supported ? device.volume : 0;
+
+  let supported;
+  let value;
+  if (watch) {
+    supported = true;
+    value = getLocal().getVolume();
+  } else if (viaBridge) {
+    supported = typeof bridgeState.volume === "number";
+    value = supported ? bridgeState.volume : 0;
+  } else {
+    supported = !!(device && device.supportsVolume !== false && typeof device.volume === "number");
+    value = supported ? device.volume : 0;
+  }
   let timer = null;
 
   function send() {
     timer = null;
     const percent = value;
+    const method = viaBridge ? "bridge_volume_set" : "volume";
     page
-      .request({ method: "volume", params: { percent } }, { timeout: 8000 })
+      .request({ method, params: { percent } }, { timeout: 9000 })
       .then(() => {
-        const st = getApp().globalData.state;
-        if (st && st.device) st.device.volume = percent;
+        if (viaBridge) bridgeState.volume = percent;
+        else {
+          const st = globalData().state;
+          if (st && st.device) st.device.volume = percent;
+        }
       })
       .catch((e) => onUpdate && onUpdate(value, e));
   }
 
   return {
-    supported,
-    name: watch ? "Часы" : device ? device.name : "",
+    get supported() {
+      return supported;
+    },
+    viaBridge,
+    name: watch ? "Часы" : device ? device.name + (viaBridge ? " · SimpleZepp" : "") : "",
     get value() {
       return value;
+    },
+    // Phone volume arrives later (asked through SimpleZepp)
+    setKnown(v) {
+      supported = true;
+      value = v;
+      if (onUpdate) onUpdate(value, null);
     },
     change(delta) {
       if (!supported) return false;

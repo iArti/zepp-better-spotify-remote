@@ -3,7 +3,7 @@ import { createWidget, widget, prop } from "@zos/ui";
 import { px } from "@zos/utils";
 import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
 import { W, GREEN, GRAY, DARK, text, setText, iconButton, title, formatError } from "../../shared/ui";
-import { createVolume, VOLUME_STEP } from "../../shared/volume";
+import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 
 Page(
   BasePage({
@@ -25,7 +25,17 @@ Page(
 
       this.valueText = text(130, 225, 220, 70, "", { size: 56 });
 
-      if (this.volume.supported) {
+      // Through SimpleZepp the phone volume may still be unknown: ask for it
+      if (this.volume.viaBridge && !this.volume.supported) {
+        this.request({ method: "bridge_volume" }, { timeout: 9000 })
+          .then(({ result }) => {
+            getBridge().volume = result;
+            this.volume.setKnown(result);
+          })
+          .catch((e) => setText(this.deviceText, formatError(e)));
+      }
+
+      if (this.volume.supported || this.volume.viaBridge) {
         iconButton(110, 410, 96, 72, "minus.png", () => this.volume.change(-VOLUME_STEP));
         iconButton(370, 410, 96, 72, "plus.png", () => this.volume.change(VOLUME_STEP));
         onKey({
@@ -36,7 +46,11 @@ Page(
           },
         });
       } else {
-        text(70, 330, W - 140, 90, "Spotify не меняет громкость на телефоне", { size: 24, color: GRAY, wrap: true });
+        const hint =
+          getBridge().available && wantsBridge()
+            ? "Подключите SimpleZepp в «Устройствах»"
+            : "Spotify не меняет громкость на телефоне";
+        text(70, 330, W - 140, 90, hint, { size: 24, color: GRAY, wrap: true });
       }
 
       this.render();
@@ -44,7 +58,7 @@ Page(
 
     render() {
       if (!this.volume.supported) {
-        setText(this.valueText, "—");
+        setText(this.valueText, this.volume.viaBridge ? "…" : "—");
         return;
       }
       const v = this.volume.value;
