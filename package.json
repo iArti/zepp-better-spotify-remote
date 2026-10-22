@@ -4,6 +4,9 @@
   "private": true,
   "license": "0BSD",
   "scripts": {
+    "check": "node tools/check-build.mjs",
+    "build": "zeus build",
+    "preview": "zeus preview",
     "assets": "python -I tools/make_assets.py",
     "auth": "node tools/spotify-auth.mjs"
   },

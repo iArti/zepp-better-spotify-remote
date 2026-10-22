@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run check)",
+      "Bash(npm run build)",
+      "Bash(npm run assets)",
+      "Bash(npm i)",
+      "Bash(zeus build)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git pull --ff-only)",
+      "Bash(git push)",
+      "Bash(git push origin main)"
+    ],
+    "deny": [
+      "Read(app-side/secrets.js)"
+    ]
+  }
+}
