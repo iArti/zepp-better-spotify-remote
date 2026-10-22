@@ -205,11 +205,21 @@ class LocalPlayer {
     this.playIndex(this.index >= 0 ? this.index : 0, true);
   }
 
+  // Drops a player that stopped working. A finished track leaves the player in a
+  // state isAlive() does not list, but it is still usable: replacing it would
+  // leave two native players fighting over audio (hangs, then a watch reboot).
+  dropIfDead() {
+    if (this.player && this.prepared && !this.completed && !this.isAlive()) this.player = null;
+  }
+
   ensurePlayer() {
     if (this.player) return;
     const p = this.newPlayer();
     const ev = p.event;
+    // Events of a replaced player must not touch the current one
+    const mine = () => p === this.player;
     p.addEventListener(ev.PREPARE, (ok) => {
+      if (!mine()) return;
       if (!ok) {
         console.log("local prepare failed", this.current() && this.current().file);
         this.playing = false;
@@ -244,13 +254,17 @@ class LocalPlayer {
     });
     p.addEventListener(ev.PAUSE, () => {
       // Our own pause() clears `playing` first, so this is a system pause
-      // (resource conflict, page change): try to continue, at most every 5 s
-      if (!this.playing) return;
+      // (resource conflict, page change): try to continue, at most every 5 s.
+      // Near the end of the track it is the track finishing: COMPLETE handles that.
+      if (!mine() || !this.playing) return;
+      if (this.duration && this.position() > this.duration - 2000) return;
       const now = Date.now();
       if (now - (this.autoResumedAt || 0) > 5000) {
         this.autoResumedAt = now;
         console.log("local: system pause, resuming");
+        const gen = this.gen;
         setTimeout(() => {
+          if (!mine() || gen !== this.gen || !this.playing) return;
           try {
             p.start();
           } catch (e) {}
@@ -262,8 +276,15 @@ class LocalPlayer {
       this.emit();
     });
     p.addEventListener(ev.COMPLETE, () => {
+      if (!mine() || this.completed) return;
+      this.completed = true;
       this.playing = false;
-      this.next();
+      this.basePos = this.duration;
+      // Leave the native callback before stopping and re-preparing this player
+      const gen = this.gen;
+      setTimeout(() => {
+        if (gen === this.gen) this.next();
+      }, 300);
     });
     this.player = p;
   }
@@ -271,7 +292,9 @@ class LocalPlayer {
   playIndex(i, keepPending) {
     if (!this.tracks.length) return;
     if (!keepPending) this.pendingSeek = 0;
-    if (this.player && this.prepared && !this.isAlive()) this.player = null;
+    this.dropIfDead();
+    this.gen = (this.gen || 0) + 1; // cancels pending auto-resume / auto-next
+    this.completed = false;
     this.index = ((i % this.tracks.length) + this.tracks.length) % this.tracks.length;
     this.ensurePlayer();
     this.prepared = false;
@@ -295,6 +318,10 @@ class LocalPlayer {
   }
 
   toggle() {
+    if (this.completed) {
+      this.next();
+      return;
+    }
     if (this.prepared && !this.isAlive()) {
       this.recover();
       return;
@@ -311,16 +338,16 @@ class LocalPlayer {
   }
 
   next() {
-    if (this.player && !this.isAlive()) this.player = null;
     this.playIndex(this.index + 1);
   }
 
   prev() {
-    if (this.player && !this.isAlive()) this.player = null;
     this.playIndex(this.index - 1);
   }
 
   stop() {
+    this.gen = (this.gen || 0) + 1;
+    this.completed = false;
     if (this.player) {
       try {
         this.player.stop();
