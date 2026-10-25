@@ -1,5 +1,5 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, widget, prop, getTextLayout } from "@zos/ui";
+import { createWidget, widget, prop, event, getTextLayout } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back } from "@zos/router";
 import {
@@ -16,15 +16,16 @@ import {
   GESTURE_UP,
   GESTURE_DOWN,
 } from "@zos/interaction";
-import { W, GREEN, MINT, DARK, text, setText, formatError, onTap } from "../../shared/ui";
+import { W, GREEN, MINT, DARK, text, setText, formatError } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
 
 // Current playlist as a wheel: the focused track large in the middle, two
 // neighbours above and below, smaller and dimmer towards the edge.
 // In "music from the watch" mode: the whole watch library in the configured order.
-// Up/Down or a swipe move by one track; Select, holding Down or a tap on the
-// middle plays it; a tap on a neighbour focuses it.
+// Up/Down move by one track, dragging turns the wheel under the finger (with a
+// fling at the end); Select, holding Down or a tap on the middle plays it; a
+// tap on a neighbour focuses it.
 
 const LABEL = 0x8a8a8a;
 const PILL = 0x1f1f1f;
@@ -40,6 +41,19 @@ const SLOTS = [
   { offset: 2, x: 90, w: 300, y: 388, h: 32, size: 19, color: 0x555555 },
 ];
 
+// Touch: finger travel per track, tap tolerance, fling
+const DRAG_STEP = 52;
+const TAP_SLOP = 16;
+const FLING_SAMPLE_MS = 120; // velocity is measured over the last part of the drag
+const FLING_MIN_SPEED = 0.5; // design px per ms
+const FLING_STEPS_PER_SPEED = 6;
+const FLING_MAX_STEPS = 20;
+const FLING_FIRST_MS = 30;
+const FLING_SLOWDOWN = 1.25; // each next step waits this much longer
+
+// Tap zones (design y) between the slots
+const ZONE_EDGES = [128, 204, 298, 382];
+
 // Position indicator along the right edge
 const ARC_BOX = { x: 14, y: 14, w: 452, h: 452 };
 const ARC_FROM = -40;
@@ -50,9 +64,9 @@ const ARC_MIN_THUMB = 8; // degrees
 Page(
   BasePage({
     build() {
-      createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
+      this.touch(createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK }));
       const watch = isWatchSource();
-      text(90, 40, W - 180, 26, t(watch ? "watchMusic" : "currentPlaylist").toUpperCase(), { size: 15, color: LABEL });
+      this.touch(text(90, 40, W - 180, 26, t(watch ? "watchMusic" : "currentPlaylist").toUpperCase(), { size: 15, color: LABEL }));
 
       this.items = [];
       this.focus = 0;
@@ -127,14 +141,13 @@ Page(
         color: MINT,
       });
       this.pill.setProperty(prop.VISIBLE, false);
-      onTap(this.pill, () => this.activate());
+      this.touch(this.pill);
 
       this.slots = SLOTS.map((slot) => {
         const title = text(slot.x, slot.y, slot.w, slot.h, "", { size: slot.size, color: slot.color });
         const sub = slot.sub ? text(slot.x, slot.sub.y, slot.w, slot.sub.h, "", slot.sub) : null;
-        const onClick = () => (slot.offset ? this.setFocus(this.focus + slot.offset) : this.activate());
-        onTap(title, onClick);
-        if (sub) onTap(sub, onClick);
+        this.touch(title);
+        if (sub) this.touch(sub);
         return { ...slot, title, sub: sub && { ...slot.sub, widget: sub } };
       });
 
@@ -142,8 +155,8 @@ Page(
       this.eq = [0, 1, 2].map(() => createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(4), h: px(4), color: GREEN }));
       this.eq.forEach((bar) => bar.setProperty(prop.VISIBLE, false));
 
-      this.status = text(70, 200, W - 140, 100, "", { size: 24, color: LABEL, wrap: true });
-      this.counter = text(140, 426, 200, 24, "", { size: 16, color: LABEL });
+      this.status = this.touch(text(70, 200, W - 140, 100, "", { size: 24, color: LABEL, wrap: true }));
+      this.counter = this.touch(text(140, 426, 200, 24, "", { size: 16, color: LABEL }));
 
       this.arcOpts = {
         x: px(ARC_BOX.x),
@@ -154,6 +167,7 @@ Page(
       };
       this.arcTrack = createWidget(widget.ARC, { ...this.arcOpts, start_angle: ARC_FROM, end_angle: ARC_TO, color: 0x333333 });
       this.arcThumb = createWidget(widget.ARC, { ...this.arcOpts, start_angle: ARC_FROM, end_angle: ARC_FROM, color: MINT });
+      [...this.eq, this.arcTrack, this.arcThumb].forEach((w) => this.touch(w));
       this.arcTrack.setProperty(prop.VISIBLE, false);
       this.arcThumb.setProperty(prop.VISIBLE, false);
     },
@@ -232,15 +246,79 @@ Page(
           return false;
         },
       });
-      // Swipe up = content moves up = next track
-      onGesture({
-        callback: (gesture) => {
-          if (gesture === GESTURE_UP) this.setFocus(this.focus + 1);
-          else if (gesture === GESTURE_DOWN) this.setFocus(this.focus - 1);
-          else return false;
-          return true;
-        },
-      });
+      // Vertical swipes are handled by the touch events; keep the system and
+      // the previous page's listener away from them
+      onGesture({ callback: (gesture) => gesture === GESTURE_UP || gesture === GESTURE_DOWN });
+    },
+
+    // Every widget gets the same handlers: the one under the finger at CLICK_DOWN
+    // keeps receiving MOVE and CLICK_UP for the whole drag
+    touch(w) {
+      w.addEventListener(event.CLICK_DOWN, (e) => this.onDown(e));
+      w.addEventListener(event.MOVE, (e) => this.onMove(e));
+      w.addEventListener(event.CLICK_UP, (e) => this.onUp(e));
+      return w;
+    },
+
+    onDown(e) {
+      this.stopFling();
+      const now = Date.now();
+      this.drag = { startY: e.y, anchor: this.focus, moved: false, samples: [{ y: e.y, t: now }] };
+    },
+
+    onMove(e) {
+      const d = this.drag;
+      if (!d) return;
+      const dy = e.y - d.startY;
+      if (Math.abs(dy) > px(TAP_SLOP)) d.moved = true;
+      const now = Date.now();
+      d.samples.push({ y: e.y, t: now });
+      while (d.samples.length > 2 && now - d.samples[0].t > FLING_SAMPLE_MS) d.samples.shift();
+      if (!d.moved) return;
+      // Finger up = wheel up = next track
+      const target = d.anchor - Math.round(dy / px(DRAG_STEP));
+      if (target !== this.focus) this.setFocus(target);
+    },
+
+    onUp(e) {
+      const d = this.drag;
+      this.drag = null;
+      if (!d) return;
+      if (!d.moved) {
+        this.tapAt(e.y);
+        return;
+      }
+      const first = d.samples[0];
+      const dt = Date.now() - first.t;
+      if (dt <= 0) return;
+      const speed = (e.y - first.y) / px(1) / dt; // design px per ms, negative = up
+      if (Math.abs(speed) < FLING_MIN_SPEED) return;
+      const steps = Math.min(FLING_MAX_STEPS, Math.round(Math.abs(speed) * FLING_STEPS_PER_SPEED));
+      this.fling(speed < 0 ? 1 : -1, steps, FLING_FIRST_MS);
+    },
+
+    // Inertia: keep stepping with growing pauses
+    fling(dir, steps, delay) {
+      if (steps <= 0) return;
+      this.flingTimer = setTimeout(() => {
+        this.flingTimer = null;
+        const before = this.focus;
+        this.setFocus(this.focus + dir);
+        if (this.focus !== before) this.fling(dir, steps - 1, delay * FLING_SLOWDOWN);
+      }, delay);
+    },
+
+    stopFling() {
+      if (this.flingTimer) clearTimeout(this.flingTimer);
+      this.flingTimer = null;
+    },
+
+    tapAt(y) {
+      const designY = (y * W) / px(W);
+      const zone = ZONE_EDGES.filter((edge) => designY >= edge).length; // 0..4
+      const offset = zone - 2;
+      if (offset) this.setFocus(this.focus + offset);
+      else this.activate();
     },
 
     activate() {
@@ -255,6 +333,7 @@ Page(
     },
 
     onDestroy() {
+      this.stopFling();
       try {
         offKey();
         offGesture();
