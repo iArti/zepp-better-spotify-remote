@@ -88,12 +88,12 @@ function deviceIcon(device) {
 // Centered if it fits; otherwise left-aligned and as wide as the text itself,
 // so nothing is cut with "..." and the tail goes past the screen edge
 // Light outline for screensaver text on bright covers: TEXT has no stroke or shadow,
-// so dark copies shifted diagonally are drawn under the main text
+// so dark copies shifted diagonally by 1 px are drawn under the main text
 const OUTLINE_OFFSETS = [
-  [-2, -2],
-  [2, -2],
-  [-2, 2],
-  [2, 2],
+  [-1, -1],
+  [1, -1],
+  [-1, 1],
+  [1, 1],
 ];
 const OUTLINE_COLOR = 0x202020;
 
