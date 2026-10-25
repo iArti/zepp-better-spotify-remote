@@ -1,9 +1,9 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, widget, event } from "@zos/ui";
+import { createWidget, widget } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back } from "@zos/router";
 import { scrollTo } from "@zos/page";
-import { W, GRAY, GREEN, DARK, text, setText, listButton, title, formatError } from "../../shared/ui";
+import { W, GRAY, GREEN, DARK, text, setText, listButton, title, formatError, onTap } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
 
 // Current playlist: what is playing now and what comes next.
@@ -83,10 +83,10 @@ Page(
       listButton(y, "", onClick, { h: ROW_H - 12, color: opts.current ? 0x1a5c36 : undefined });
       // Labels sit on top of the button, so they forward taps too
       const name = text(90, y + 6, W - 180, 40, item.name, { size: 26, color: opts.current ? GREEN : 0xffffff });
-      name.addEventListener(event.CLICK_UP, onClick);
+      onTap(name, onClick);
       if (item.sub) {
         const sub = text(90, y + 42, W - 180, 34, item.sub, { size: 20, color: GRAY });
-        sub.addEventListener(event.CLICK_UP, onClick);
+        onTap(sub, onClick);
       }
     },
 

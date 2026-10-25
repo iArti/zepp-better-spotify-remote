@@ -1,11 +1,11 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, deleteWidget, widget, event, prop, align } from "@zos/ui";
+import { createWidget, deleteWidget, widget, prop, align } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back } from "@zos/router";
 import { getScrollTop } from "@zos/page";
 import { localStorage } from "@zos/storage";
 import { onGesture, offGesture, GESTURE_DOWN } from "@zos/interaction";
-import { W, GRAY, DARK, text, setText, iconButton, formatError } from "../../shared/ui";
+import { W, GRAY, DARK, text, setText, iconButton, formatError, onTap } from "../../shared/ui";
 import { getThumbs } from "../../shared/thumbs";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY } from "../../shared/local";
 
@@ -91,8 +91,8 @@ Page(
         src,
       });
       const label = text(162, y, W - 162 - 40, THUMB, name, { size: 32, alignH: align.LEFT });
-      img.addEventListener(event.CLICK_UP, onClick);
-      label.addEventListener(event.CLICK_UP, onClick);
+      onTap(img, onClick);
+      onTap(label, onClick);
       return [img, label];
     },
 

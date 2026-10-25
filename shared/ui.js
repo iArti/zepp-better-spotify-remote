@@ -29,6 +29,24 @@ export function setText(w, value) {
 }
 
 // Icon image centered in a larger tap area
+// Finger movement that still counts as a tap, not a swipe (design px)
+const TAP_SLOP = 24;
+
+// CLICK_UP also fires at the end of a swipe that started on the widget
+// (e.g. swiping between screens over the play button): ignore those
+export function onTap(widgetRef, onClick) {
+  let down = null;
+  widgetRef.addEventListener(event.CLICK_DOWN, (e) => {
+    down = { x: e.x, y: e.y };
+  });
+  widgetRef.addEventListener(event.CLICK_UP, (e) => {
+    const start = down;
+    down = null;
+    if (start && (Math.abs(e.x - start.x) > px(TAP_SLOP) || Math.abs(e.y - start.y) > px(TAP_SLOP))) return;
+    onClick(e);
+  });
+}
+
 export function iconButton(cx, cy, area, iconSize, src, onClick) {
   const img = createWidget(widget.IMG, {
     x: px(cx - area / 2),
@@ -39,7 +57,7 @@ export function iconButton(cx, cy, area, iconSize, src, onClick) {
     pos_y: px((area - iconSize) / 2),
     src,
   });
-  if (onClick) img.addEventListener(event.CLICK_UP, onClick);
+  if (onClick) onTap(img, onClick);
   return img;
 }
 
