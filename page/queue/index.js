@@ -1,22 +1,29 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, widget } from "@zos/ui";
+import { createWidget, widget, prop } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back } from "@zos/router";
 import { scrollTo } from "@zos/page";
-import { W, GRAY, GREEN, DARK, text, setText, listButton, title, formatError, onTap } from "../../shared/ui";
+import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_EVENT_CLICK, KEY_EVENT_LONG_PRESS } from "@zos/interaction";
+import { W, GRAY, GREEN, MINT, DARK, text, setText, listButton, title, formatError, onTap } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
 
 // Current playlist: what is playing now and what comes next.
 // In "music from the watch" mode: the whole watch library in the configured order.
+// Keys: Up/Down move the focus frame, Select or holding Down plays the focused row.
 
 const ROW_H = 96;
 const TOP = 110;
+const FOCUS_LINE = 3;
+const SCROLL_ANIM_MS = 200;
 
 Page(
   BasePage({
     build() {
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
+      this.rows = [];
+      this.focus = 0;
+      this.bindKeys();
       if (isWatchSource()) {
         this.buildWatchList();
         return;
@@ -53,6 +60,8 @@ Page(
         y += ROW_H;
       });
       text(0, y, W, 120, "");
+      this.createFocusFrame();
+      this.setFocus(0, false);
     },
 
     buildWatchList() {
@@ -77,10 +86,12 @@ Page(
       text(0, TOP + local.tracks.length * ROW_H, W, 120, "");
 
       // Start with the current track in view
-      if (local.index > 1) scrollTo({ y: -px(TOP + (local.index - 1) * ROW_H) });
+      this.createFocusFrame();
+      this.setFocus(Math.max(local.index, 0), false);
     },
 
     row(y, item, onClick, opts = {}) {
+      this.rows.push({ y, onClick });
       listButton(y, "", onClick, { h: ROW_H - 12, color: opts.current ? 0x1a5c36 : undefined });
       // Labels sit on top of the button, so they forward taps too
       const name = text(90, y + 6, W - 180, 40, item.name, { size: 26, color: opts.current ? GREEN : 0xffffff });
@@ -89,6 +100,66 @@ Page(
         const sub = text(90, y + 42, W - 180, 34, item.sub, { size: 20, color: GRAY });
         onTap(sub, onClick);
       }
+    },
+
+    // --- keys ---
+
+    bindKeys() {
+      onKey({
+        callback: (key, keyEvent) => {
+          if (key === KEY_UP || key === KEY_DOWN) {
+            if (keyEvent === KEY_EVENT_CLICK) this.setFocus(this.focus + (key === KEY_UP ? -1 : 1), true);
+            else if (key === KEY_DOWN && keyEvent === KEY_EVENT_LONG_PRESS) this.activate();
+            return true;
+          }
+          if (key === KEY_SELECT && keyEvent === KEY_EVENT_CLICK) {
+            this.activate();
+            return true;
+          }
+          return false;
+        },
+      });
+    },
+
+    // Outline drawn over the focused row (created after the rows so it is on top)
+    createFocusFrame() {
+      if (!this.rows.length) return;
+      this.frame = createWidget(widget.STROKE_RECT, this.frameGeometry(this.rows[0].y));
+      // The frame covers the focused row, so a tap on it is a tap on that row
+      onTap(this.frame, () => this.activate());
+    },
+
+    frameGeometry(y) {
+      return {
+        x: px(60),
+        y: px(y),
+        w: px(W - 120),
+        h: px(ROW_H - 12),
+        radius: px(38),
+        line_width: px(FOCUS_LINE),
+        color: MINT,
+      };
+    },
+
+    setFocus(index, animate) {
+      if (!this.frame) return;
+      this.focus = Math.max(0, Math.min(this.rows.length - 1, index));
+      const rowY = this.rows[this.focus].y;
+      this.frame.setProperty(prop.MORE, this.frameGeometry(rowY));
+      // Keep the focused row in the middle of the screen
+      const y = -px(Math.max(0, rowY + (ROW_H - 12) / 2 - W / 2));
+      scrollTo(animate ? { y, animConfig: { anim_rate: "easeout", anim_duration: SCROLL_ANIM_MS } } : { y });
+    },
+
+    activate() {
+      const row = this.rows[this.focus];
+      if (row) row.onClick();
+    },
+
+    onDestroy() {
+      try {
+        offKey();
+      } catch (e) {}
     },
 
     play(params) {
