@@ -1,5 +1,5 @@
 // Spotify Connect device.type -> icon; anything else keeps the generic one.
-// variant: "" = green 64 px, "_s" = gray 36 px (lists), "_m" / "_mg" = gray / green 56 px (cards).
+// variant: "" = green 64 px, "_s" = gray 36 px (lists), "_m" / "_mg" = gray / green 64 px (cards).
 const DEVICE_ICONS = {
   Computer: "dev_computer",
   Smartphone: "dev_phone",

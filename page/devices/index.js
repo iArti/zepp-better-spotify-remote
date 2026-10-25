@@ -16,13 +16,14 @@ const PILL = 0x2a2a2a;
 const ACTIVE = 0x1a5c36;
 const LABEL_Y = 50;
 const SWITCH_Y = 82;
-const CARDS_Y = 158;
-const VOLUME_Y = 306;
-const BRIDGE_Y = 370;
-const CARD_W = 124;
-const CARD_H = 128;
+const CARDS_Y = 160;
+const VOLUME_Y = 336;
+const BRIDGE_Y = 402;
+const CARD_W = 136;
+const CARD_H = 148;
 const CARD_GAP = 10;
-const CARDS_EDGE = 44; // left inset when the row scrolls
+const CARD_ICON = 64;
+const CARDS_EDGE = 26; // left inset when the row scrolls
 const SCROLL_TAP_GUARD_MS = 400; // a tap right after scrolling is the end of the scroll
 const PAIR_POLL_MS = 2000;
 const PAIR_POLL_LIMIT = 48; // ~95 s, a bit longer than the phone-side pairing window
@@ -175,20 +176,20 @@ Page(
           click_func: onClick || (() => {}),
         });
         const icon = row.createWidget(widget.IMG, {
-          x: px(x + (CARD_W - 56) / 2),
-          y: px(14),
-          w: px(56),
-          h: px(56),
+          x: px(x + (CARD_W - CARD_ICON) / 2),
+          y: px(18),
+          w: px(CARD_ICON),
+          h: px(CARD_ICON),
           auto_scale: true,
           src: c.icon,
         });
         const label = row.createWidget(widget.TEXT, {
           x: px(x + 6),
-          y: px(74),
+          y: px(88),
           w: px(CARD_W - 12),
-          h: px(50),
+          h: px(54),
           text: c.label,
-          text_size: px(19),
+          text_size: px(17),
           color: 0xffffff,
           align_h: align.CENTER_H,
           align_v: align.CENTER_V,
