@@ -1,60 +1,213 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, widget, prop } from "@zos/ui";
+import { createWidget, deleteWidget, widget, prop, align } from "@zos/ui";
 import { px } from "@zos/utils";
-import { back, push, replace } from "@zos/router";
-import { localStorage } from "@zos/storage";
+import { back, push } from "@zos/router";
 import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
-import { W, GRAY, DARK, text, setText, listButton, title, formatError } from "../../shared/ui";
+import { W, GRAY, MINT, DARK, text, setText, onTap, formatError } from "../../shared/ui";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY, SOURCE_WATCH } from "../../shared/local";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
+import { deviceIcon } from "../../shared/devices";
 
-const ROW = 88;
-const TOP = 110;
-const ACTIVE_COLOR = 0x1a5c36;
-const IDLE_COLOR = 0x333333;
+// Layout: source switch (Spotify | Watch) on top, then where it plays,
+// then a compact volume control and the optional SimpleZepp line.
+const LABEL = 0x8a8a8a;
+const PILL = 0x2a2a2a;
+const ACTIVE = 0x1a5c36;
+const LINE = 0x333333;
+const ROW = 54;
+const LIST_TOP = 172;
 const PAIR_POLL_MS = 2000;
 const PAIR_POLL_LIMIT = 48; // ~95 s, a bit longer than the phone-side pairing window
-// Whether SimpleZepp answered last time: decides the layout before it answers now
-const BRIDGE_SEEN_KEY = "bridgeSeen";
 
 Page(
   BasePage({
     build() {
-      const watch = isWatchSource();
-      createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
-      title("Устройства");
+      createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(1200), color: DARK });
+      text(140, 30, 200, 30, "ИСТОЧНИК", { size: 18, color: LABEL });
 
-      // Optional SimpleZepp row on top, only when the bridge exists on this phone
-      this.hasBridgeRow = localStorage.getItem(BRIDGE_SEEN_KEY, "0") === "1";
-      let y = TOP;
-      if (this.hasBridgeRow) {
-        this.bridgeY = y;
-        this.bridgeBtn = listButton(y, "SimpleZepp…", () => this.onBridgeTap(), { color: IDLE_COLOR });
-        y += ROW;
-      }
+      // Source switch: two halves on a pill
+      createWidget(widget.FILL_RECT, { x: px(80), y: px(74), w: px(320), h: px(54), radius: px(27), color: PILL });
+      this.spotifyBtn = this.segment(84, "Spotify", () => this.selectSpotify());
+      this.watchBtn = this.segment(240, "Часы", () => this.selectWatch());
 
-      // Volume of the current source; Up/Down change it
-      this.volumeY = y;
-      this.volumeBtn = listButton(y, "", () => push({ url: "page/volume/index" }), { color: IDLE_COLOR });
-      y += ROW;
+      this.sectionLabel = text(140, 140, 200, 30, "", { size: 18, color: LABEL });
+      this.body = [];
+      this.devices = null; // null = loading
+      this.devicesError = "";
+
       this.initVolume();
+      this.render();
 
-      // Shown right away: works without the phone
-      listButton(y, (watch ? "● " : "") + "Музыка с часов", () => this.selectWatch(), {
-        color: watch ? ACTIVE_COLOR : undefined,
-      });
-      y += ROW;
-      this.devicesY = y;
-
-      this.status = text(60, y + 10, W - 120, 80, "Загрузка…", { size: 26, color: GRAY, wrap: true });
       this.request({ method: "devices" }, { timeout: 10000 })
-        .then(({ result }) => this.renderList(result))
-        .catch((e) => setText(this.status, formatError(e)));
+        .then(({ result }) => {
+          this.devices = result;
+          this.render();
+        })
+        .catch((e) => {
+          this.devices = [];
+          this.devicesError = formatError(e);
+          this.render();
+        });
 
       this.checkBridge();
     },
 
-    // --- SimpleZepp ---
+    segment(x, label, onClick) {
+      return createWidget(widget.BUTTON, {
+        x: px(x),
+        y: px(78),
+        w: px(156),
+        h: px(46),
+        radius: px(23),
+        normal_color: PILL,
+        press_color: 0x3a3a3a,
+        color: GRAY,
+        text_size: px(22),
+        text: label,
+        click_func: onClick,
+      });
+    },
+
+    renderSwitch() {
+      const watch = isWatchSource();
+      const style = (x, label, active) => ({
+        x: px(x),
+        y: px(78),
+        w: px(156),
+        h: px(46),
+        radius: px(23),
+        normal_color: active ? ACTIVE : PILL,
+        press_color: active ? ACTIVE : 0x3a3a3a,
+        color: active ? 0xffffff : GRAY,
+        text_size: px(22),
+        text: label,
+      });
+      this.spotifyBtn.setProperty(prop.MORE, style(84, "Spotify", !watch));
+      this.watchBtn.setProperty(prop.MORE, style(240, "Часы", watch));
+    },
+
+    // --- body: rebuilt whenever the source, the device list or SimpleZepp changes ---
+
+    add(w) {
+      this.body.push(w);
+      return w;
+    },
+
+    render() {
+      this.body.forEach((w) => deleteWidget(w));
+      this.body = [];
+      this.valueText = null;
+      this.renderSwitch();
+
+      let y = LIST_TOP;
+      if (isWatchSource()) {
+        setText(this.sectionLabel, "НА ЧАСАХ");
+        const local = getLocal();
+        const count = local.tracks.length;
+        const label = count ? `${count} треков` : local.scanning ? "Читаю теги…" : "Нет музыки на часах";
+        y = this.row(y, "dev_watch_s.png", label, true, null);
+        if (count) y = this.row(y, null, "Список песен  ›", false, () => push({ url: "page/queue/index" }), true);
+      } else {
+        setText(this.sectionLabel, "ГДЕ ИГРАЕТ");
+        if (this.devices === null) {
+          this.add(text(100, y, 280, ROW, "Загрузка…", { size: 22, color: GRAY }));
+          y += ROW;
+        } else if (!this.devices.length) {
+          const msg = this.devicesError || "Нет устройств Spotify. Откройте Spotify на телефоне или ПК.";
+          this.add(text(90, y, 300, ROW * 2, msg, { size: 20, color: GRAY, wrap: true }));
+          y += ROW * 2;
+        } else {
+          this.devices.forEach((d, i) => {
+            y = this.row(y, deviceIcon(d, true), d.name, d.active, () => this.select(d), i < this.devices.length - 1);
+          });
+        }
+      }
+
+      this.renderVolumePill(y + 14);
+      this.renderBridgeLine(y + 70);
+      // Spacer so everything can scroll above the round bottom edge
+      this.add(text(0, y + 110, W, 120, ""));
+    },
+
+    // One list row: icon, name, dot when active; returns the next row's y
+    row(y, icon, label, active, onClick, separator) {
+      if (onClick) {
+        this.add(
+          createWidget(widget.BUTTON, {
+            x: px(80),
+            y: px(y),
+            w: px(320),
+            h: px(ROW),
+            radius: px(14),
+            normal_color: DARK,
+            press_color: PILL,
+            text: "",
+            click_func: onClick,
+          })
+        );
+      }
+      if (icon) this.add(createWidget(widget.IMG, { x: px(90), y: px(y + 9), w: px(36), h: px(36), src: icon }));
+      const name = this.add(
+        text(icon ? 138 : 96, y, 220, ROW, label, { size: 24, color: active ? MINT : 0xffffff, alignH: align.LEFT })
+      );
+      if (onClick) onTap(name, onClick); // the label sits on top of the button
+      if (active) this.add(text(356, y, 30, ROW, "●", { size: 18, color: MINT }));
+      if (separator) {
+        this.add(createWidget(widget.FILL_RECT, { x: px(96), y: px(y + ROW - 1), w: px(288), h: 1, color: LINE }));
+      }
+      return y + ROW;
+    },
+
+    // --- volume ---
+
+    initVolume() {
+      if (this.volume) this.volume.flush();
+      this.volume = createVolume(this, () => this.renderVolume());
+      onKey({
+        callback: (key, keyEvent) => {
+          if (key !== KEY_UP && key !== KEY_DOWN) return false;
+          if (keyEvent === KEY_EVENT_CLICK) this.volume.change(key === KEY_UP ? VOLUME_STEP : -VOLUME_STEP);
+          return true;
+        },
+      });
+    },
+
+    renderVolumePill(y) {
+      this.add(createWidget(widget.FILL_RECT, { x: px(113), y: px(y), w: px(254), h: px(50), radius: px(25), color: PILL }));
+      const minus = this.add(text(118, y, 60, 50, "−", { size: 32 }));
+      const plus = this.add(text(302, y, 60, 50, "+", { size: 32 }));
+      this.valueText = this.add(text(178, y, 124, 50, "", { size: 24 }));
+      onTap(minus, () => this.volume.change(-VOLUME_STEP));
+      onTap(plus, () => this.volume.change(VOLUME_STEP));
+      onTap(this.valueText, () => push({ url: "page/volume/index" }));
+      this.renderVolume();
+    },
+
+    renderVolume() {
+      if (!this.valueText) return;
+      const v = this.volume;
+      setText(this.valueText, v.supported ? `${v.value}%` : v.viaBridge ? "…" : "—");
+    },
+
+    // --- SimpleZepp (optional; the line is hidden when the bridge is absent) ---
+
+    renderBridgeLine(y) {
+      const b = getBridge();
+      if (!b.available) return;
+      let label;
+      let color = LABEL;
+      let onClick = null;
+      if (!b.paired) {
+        if (b.pairing) label = "Подтвердите на телефоне…";
+        else {
+          label = "Подключить SimpleZepp";
+          color = MINT;
+          onClick = () => this.pairBridge();
+        }
+      } else label = wantsBridge() ? "SimpleZepp подключён" : "SimpleZepp неактивен";
+      const line = this.add(text(100, y, 280, 30, label, { size: 17, color }));
+      if (onClick) onTap(line, onClick);
+    },
 
     checkBridge() {
       this.request({ method: "bridge_status" }, { timeout: 9000 })
@@ -66,16 +219,6 @@ Page(
       const b = getBridge();
       const wasPaired = b.paired;
       Object.assign(b, st);
-
-      // Layout depends on whether the row exists: rebuild once if that changed
-      if (st.available !== this.hasBridgeRow) {
-        localStorage.setItem(BRIDGE_SEEN_KEY, st.available ? "1" : "0");
-        replace({ url: "page/devices/index" });
-        return;
-      }
-      if (!st.available) return;
-      this.renderBridge();
-
       if (st.paired && wantsBridge()) {
         if (!wasPaired || !this.volume.viaBridge) this.initVolume();
         this.request({ method: "bridge_volume" }, { timeout: 9000 })
@@ -85,33 +228,15 @@ Page(
           })
           .catch((e) => console.log("bridge volume failed", e));
       }
+      this.render();
     },
 
-    renderBridge() {
-      if (!this.bridgeBtn) return;
-      const b = getBridge();
-      let label;
-      let color = IDLE_COLOR;
-      if (!b.paired) label = b.pairing ? "Подтвердите на телефоне…" : "Подключить SimpleZepp";
-      else if (wantsBridge()) {
-        label = "SimpleZepp подключён";
-        color = ACTIVE_COLOR;
-      } else label = "SimpleZepp неактивен";
-      this.bridgeBtn.setProperty(prop.MORE, {
-        x: px(60),
-        y: px(this.bridgeY),
-        w: px(W - 120),
-        h: px(76),
-        text: label,
-        normal_color: color,
-      });
-    },
-
-    onBridgeTap() {
+    pairBridge() {
       const b = getBridge();
       if (b.paired || b.pairing) return;
       b.pairing = true;
-      this.renderBridge();
+      // Called from the tapped line itself: don't delete it inside its own event
+      setTimeout(() => this.render(), 0);
       this.request({ method: "bridge_pair" }, { timeout: 9000 }).catch(() => {});
       this.pollPairing(0);
     },
@@ -119,7 +244,7 @@ Page(
     pollPairing(n) {
       if (n >= PAIR_POLL_LIMIT) {
         getBridge().pairing = false;
-        this.renderBridge();
+        this.render();
         return;
       }
       this.pairTimer = setTimeout(() => {
@@ -132,34 +257,43 @@ Page(
       }, PAIR_POLL_MS);
     },
 
-    // --- volume ---
+    // --- sources ---
 
-    initVolume() {
-      if (this.volume) this.volume.flush();
-      this.volume = createVolume(this, () => this.renderVolume());
-      this.renderVolume();
-      onKey({
-        callback: (key, keyEvent) => {
-          if (key !== KEY_UP && key !== KEY_DOWN) return false;
-          if (keyEvent === KEY_EVENT_CLICK) this.volume.change(key === KEY_UP ? VOLUME_STEP : -VOLUME_STEP);
-          return true;
-        },
-      });
+    selectWatch() {
+      if (isWatchSource()) return;
+      // Stop Spotify so two things don't play at once
+      const s = getApp().globalData.state;
+      if (s && s.playing) this.request({ method: "pause" }, { timeout: 8000 }).catch(() => {});
+      setSource(SOURCE_WATCH);
+      this.initVolume();
+      this.render();
     },
 
-    renderVolume() {
-      const v = this.volume;
-      const label = v.supported
-        ? `Громкость ${v.value}%`
-        : v.viaBridge
-          ? "Громкость: …"
-          : "Громкость: недоступно";
-      this.volumeBtn.setProperty(prop.MORE, { x: px(60), y: px(this.volumeY), w: px(W - 120), h: px(76), text: label });
+    selectSpotify() {
+      if (!isWatchSource()) return;
+      getLocal().stop();
+      setSource(SOURCE_SPOTIFY);
+      this.initVolume();
+      this.render();
+    },
+
+    select(device) {
+      if (device.active) {
+        back();
+        return;
+      }
+      this.request({ method: "transfer", params: { id: device.id } }, { timeout: 10000 })
+        .then(() => back())
+        .catch((e) => {
+          this.devicesError = formatError(e);
+          this.render();
+        });
     },
 
     // The volume page replaces the key listener and may change the volume
     onResume() {
       this.initVolume();
+      this.render();
     },
 
     onDestroy() {
@@ -168,54 +302,6 @@ Page(
       try {
         offKey();
       } catch (e) {}
-    },
-
-    // --- sources ---
-
-    renderList(devices) {
-      if (!devices.length) {
-        setText(this.status, "Нет устройств Spotify. Откройте Spotify на телефоне или ПК.");
-        return;
-      }
-      setText(this.status, "");
-
-      const watch = isWatchSource();
-      devices.forEach((d, i) => {
-        const active = d.active && !watch;
-        listButton(this.devicesY + i * ROW, (active ? "● " : "") + d.name, () => this.select(d), {
-          color: active ? ACTIVE_COLOR : undefined,
-        });
-      });
-      // Spacer so the last row can scroll above the bottom edge
-      text(0, this.devicesY + devices.length * ROW, W, 120, "");
-    },
-
-    selectWatch() {
-      if (isWatchSource()) {
-        back();
-        return;
-      }
-      // Stop Spotify so two things don't play at once
-      const s = getApp().globalData.state;
-      if (s && s.playing) this.request({ method: "pause" }, { timeout: 8000 }).catch(() => {});
-      setSource(SOURCE_WATCH);
-      back();
-    },
-
-    select(device) {
-      const fromWatch = isWatchSource();
-      if (fromWatch) {
-        getLocal().stop();
-        setSource(SOURCE_SPOTIFY);
-      }
-      if (device.active && !fromWatch) {
-        back();
-        return;
-      }
-      setText(this.status, "Переключаю…");
-      this.request({ method: "transfer", params: { id: device.id } }, { timeout: 10000 })
-        .then(() => back())
-        .catch((e) => setText(this.status, formatError(e)));
     },
   })
 );

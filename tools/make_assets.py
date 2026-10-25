@@ -209,6 +209,11 @@ def main():
                   rect(0.475, 0.33, 0.525, 0.53, 0.02), rect(0.475, 0.475, 0.64, 0.525, 0.02),
                   rect(0.84, 0.44, 0.90, 0.56, 0.02))
     render_icon("dev_watch", 64, watch, green)
+    # Small gray variants for the devices list
+    for name, shape in (("dev_computer", laptop), ("dev_phone", phone), ("dev_tablet", tablet),
+                        ("dev_speaker", speaker_box), ("dev_tv", tv), ("dev_car", car),
+                        ("dev_watch", watch), ("devices", devices)):
+        render_icon(name + "_s", 36, shape, (189, 189, 189))
     render_icon("knob", 18, circle(0.5, 0.5, 0.5))
     # app icon: green disc with a dark play triangle
     render_layers("icon", 248, [(circle(0.5, 0.5, 0.5), (30, 215, 96)),

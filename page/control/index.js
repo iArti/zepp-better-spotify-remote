@@ -26,6 +26,7 @@ import {
 } from "@zos/interaction";
 import { W, GREEN, MINT, DARK, text, setText, iconButton, formatError } from "../../shared/ui";
 import { ensureFileReceiver } from "../../shared/files";
+import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
 import { getLocal, isWatchSource } from "../../shared/local";
 
@@ -64,26 +65,6 @@ const KNOB_R = RING_R - RING_LINE / 2;
 const BOTTOM_DX = 122;
 const BOTTOM_Y = 362;
 const QUEUE_Y = 399;
-
-// Spotify Connect device.type -> icon; anything else keeps the generic one
-const DEVICE_ICONS = {
-  Computer: "dev_computer.png",
-  Smartphone: "dev_phone.png",
-  Tablet: "dev_tablet.png",
-  Speaker: "dev_speaker.png",
-  CastAudio: "dev_speaker.png",
-  AudioDongle: "dev_speaker.png",
-  AVR: "dev_speaker.png",
-  TV: "dev_tv.png",
-  CastVideo: "dev_tv.png",
-  STB: "dev_tv.png",
-  Automobile: "dev_car.png",
-  Watch: "dev_watch.png", // "Music from the watch" mode
-};
-
-function deviceIcon(device) {
-  return (device && DEVICE_ICONS[device.type]) || "devices.png";
-}
 
 // Centered if it fits; otherwise left-aligned and as wide as the text itself,
 // so nothing is cut with "..." and the tail goes past the screen edge
