@@ -87,7 +87,29 @@ function deviceIcon(device) {
 
 // Centered if it fits; otherwise left-aligned and as wide as the text itself,
 // so nothing is cut with "..." and the tail goes past the screen edge
-function setSaverText(widgetRef, value, size, y, h) {
+// Light outline for screensaver text on bright covers: TEXT has no stroke or shadow,
+// so dark copies shifted diagonally are drawn under the main text
+const OUTLINE_OFFSETS = [
+  [-2, -2],
+  [2, -2],
+  [-2, 2],
+  [2, 2],
+];
+const OUTLINE_COLOR = 0x202020;
+
+function outlinedText(x, y, w, h, value, opts) {
+  const shadows = OUTLINE_OFFSETS.map(([dx, dy]) =>
+    text(x + dx, y + dy, w, h, value, { ...opts, color: OUTLINE_COLOR })
+  );
+  return { main: text(x, y, w, h, value, opts), shadows };
+}
+
+function setOutlinedText(o, value) {
+  setText(o.main, value);
+  o.shadows.forEach((s) => setText(s, value));
+}
+
+function setSaverText(o, value, size, y, h) {
   const avail = px(W - 2 * SAVER_TEXT_X);
   let width = 0;
   try {
@@ -96,14 +118,17 @@ function setSaverText(widgetRef, value, size, y, h) {
     width = 0;
   }
   const fits = width <= avail;
-  widgetRef.setProperty(prop.MORE, {
-    x: px(SAVER_TEXT_X),
-    y: px(y),
-    w: fits ? avail : width + px(16),
-    h: px(h),
-    text: value,
-    align_h: fits ? align.CENTER_H : align.LEFT,
-  });
+  const place = (widgetRef, dx, dy) =>
+    widgetRef.setProperty(prop.MORE, {
+      x: px(SAVER_TEXT_X + dx),
+      y: px(y + dy),
+      w: fits ? avail : width + px(16),
+      h: px(h),
+      text: value,
+      align_h: fits ? align.CENTER_H : align.LEFT,
+    });
+  o.shadows.forEach((s, i) => place(s, OUTLINE_OFFSETS[i][0], OUTLINE_OFFSETS[i][1]));
+  place(o.main, 0, 0);
 }
 
 Page(
@@ -218,9 +243,9 @@ Page(
     buildSaver(top) {
       this.background(top, "vignette_light.png");
       const tapLayer = this.lastWidget;
-      this.saverClock = text(170, top + 10, 140, 40, "", { size: 32, color: MINT });
-      this.saverTitle = text(SAVER_TEXT_X, top + 342, W - 2 * SAVER_TEXT_X, 60, "", { size: SAVER_TITLE_SIZE });
-      this.saverArtist = text(SAVER_TEXT_X, top + 404, W - 2 * SAVER_TEXT_X, 44, "", {
+      this.saverClock = outlinedText(170, top + 10, 140, 40, "", { size: 32, color: MINT });
+      this.saverTitle = outlinedText(SAVER_TEXT_X, top + 342, W - 2 * SAVER_TEXT_X, 60, "", { size: SAVER_TITLE_SIZE });
+      this.saverArtist = outlinedText(SAVER_TEXT_X, top + 404, W - 2 * SAVER_TEXT_X, 44, "", {
         size: SAVER_ARTIST_SIZE,
         color: MINT,
       });
@@ -243,7 +268,7 @@ Page(
       });
       this.hideFlash();
 
-      [tapLayer, this.saverClock, this.saverTitle, this.saverArtist].forEach((w) => {
+      [tapLayer, this.saverClock.main, this.saverTitle.main, this.saverArtist.main].forEach((w) => {
         w.addEventListener(event.CLICK_DOWN, (e) => {
           this.tapDown = { x: e.x, y: e.y };
         });
@@ -411,7 +436,7 @@ Page(
       const h = String(this.time.getHours()).padStart(2, "0");
       const m = String(this.time.getMinutes()).padStart(2, "0");
       setText(this.clock, `${h}:${m}`);
-      setText(this.saverClock, `${h}:${m}`);
+      setOutlinedText(this.saverClock, `${h}:${m}`);
     },
 
     // Shows the watch library state; reads tags of new files first if needed
