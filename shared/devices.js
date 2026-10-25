@@ -1,5 +1,5 @@
 // Spotify Connect device.type -> icon; anything else keeps the generic one.
-// small = gray 36 px variant for lists, otherwise the green 64 px one.
+// variant: "" = green 64 px, "_s" = gray 36 px (lists), "_m" / "_mg" = gray / green 56 px (cards).
 const DEVICE_ICONS = {
   Computer: "dev_computer",
   Smartphone: "dev_phone",
@@ -15,7 +15,7 @@ const DEVICE_ICONS = {
   Watch: "dev_watch", // "Music from the watch" mode
 };
 
-export function deviceIcon(device, small = false) {
+export function deviceIcon(device, variant = "") {
   const name = (device && DEVICE_ICONS[device.type]) || "devices";
-  return name + (small ? "_s" : "") + ".png";
+  return name + variant + ".png";
 }

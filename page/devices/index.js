@@ -1,36 +1,51 @@
 import { BasePage } from "@zeppos/zml/base-page";
-import { createWidget, deleteWidget, widget, prop, align } from "@zos/ui";
+import { createWidget, deleteWidget, widget, prop, align, text_style } from "@zos/ui";
 import { px } from "@zos/utils";
 import { back, push } from "@zos/router";
-import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
+import { onKey, offKey, showToast, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
 import { W, GRAY, MINT, DARK, text, setText, onTap, formatError } from "../../shared/ui";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY, SOURCE_WATCH } from "../../shared/local";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 import { deviceIcon } from "../../shared/devices";
 
-// Layout: source switch (Spotify | Watch) on top, then where it plays,
-// then a compact volume control and the optional SimpleZepp line.
+// Layout: source switch (Spotify | Watch), volume, the optional SimpleZepp line,
+// then one row of device cards across the widest part of the round screen
+// (up to three fit; more scroll sideways).
 const LABEL = 0x8a8a8a;
 const PILL = 0x2a2a2a;
 const ACTIVE = 0x1a5c36;
-const LINE = 0x333333;
-const ROW = 54;
-const LIST_TOP = 172;
+// Shifted down to center the block; lower would clip the outer cards' corners
+const LABEL_Y = 44;
+const SWITCH_Y = 78;
+const VOLUME_Y = 154;
+const BRIDGE_Y = 216;
+const CARDS_Y = 252;
+const CARD_W = 124;
+const CARD_H = 128;
+const CARD_GAP = 10;
+const CARDS_EDGE = 44; // left inset when the row scrolls
+const SCROLL_TAP_GUARD_MS = 400; // a tap right after scrolling is the end of the scroll
 const PAIR_POLL_MS = 2000;
 const PAIR_POLL_LIMIT = 48; // ~95 s, a bit longer than the phone-side pairing window
 
 Page(
   BasePage({
     build() {
-      createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(1200), color: DARK });
-      text(140, 30, 200, 30, "ИСТОЧНИК", { size: 18, color: LABEL });
+      createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
+      text(140, LABEL_Y, 200, 30, "ИСТОЧНИК", { size: 18, color: LABEL });
 
       // Source switch: two halves on a pill
-      createWidget(widget.FILL_RECT, { x: px(80), y: px(74), w: px(320), h: px(54), radius: px(27), color: PILL });
-      this.spotifyBtn = this.segment(84, "Spotify", () => this.selectSpotify());
-      this.watchBtn = this.segment(240, "Часы", () => this.selectWatch());
+      createWidget(widget.FILL_RECT, {
+        x: px(76),
+        y: px(SWITCH_Y),
+        w: px(328),
+        h: px(60),
+        radius: px(30),
+        color: PILL,
+      });
+      this.spotifyBtn = this.segment(80, "Spotify", () => this.selectSpotify());
+      this.watchBtn = this.segment(242, "Часы", () => this.selectWatch());
 
-      this.sectionLabel = text(140, 140, 200, 30, "", { size: 18, color: LABEL });
       this.body = [];
       this.devices = null; // null = loading
       this.devicesError = "";
@@ -52,38 +67,29 @@ Page(
       this.checkBridge();
     },
 
-    segment(x, label, onClick) {
-      return createWidget(widget.BUTTON, {
+    segmentStyle(x, label, active) {
+      return {
         x: px(x),
-        y: px(78),
-        w: px(156),
-        h: px(46),
-        radius: px(23),
-        normal_color: PILL,
-        press_color: 0x3a3a3a,
-        color: GRAY,
-        text_size: px(22),
+        y: px(SWITCH_Y + 4),
+        w: px(158),
+        h: px(52),
+        radius: px(26),
+        normal_color: active ? ACTIVE : PILL,
+        press_color: active ? ACTIVE : 0x3a3a3a,
+        color: active ? 0xffffff : GRAY,
+        text_size: px(24),
         text: label,
-        click_func: onClick,
-      });
+      };
+    },
+
+    segment(x, label, onClick) {
+      return createWidget(widget.BUTTON, { ...this.segmentStyle(x, label, false), click_func: onClick });
     },
 
     renderSwitch() {
       const watch = isWatchSource();
-      const style = (x, label, active) => ({
-        x: px(x),
-        y: px(78),
-        w: px(156),
-        h: px(46),
-        radius: px(23),
-        normal_color: active ? ACTIVE : PILL,
-        press_color: active ? ACTIVE : 0x3a3a3a,
-        color: active ? 0xffffff : GRAY,
-        text_size: px(22),
-        text: label,
-      });
-      this.spotifyBtn.setProperty(prop.MORE, style(84, "Spotify", !watch));
-      this.watchBtn.setProperty(prop.MORE, style(240, "Часы", watch));
+      this.spotifyBtn.setProperty(prop.MORE, this.segmentStyle(80, "Spotify", !watch));
+      this.watchBtn.setProperty(prop.MORE, this.segmentStyle(242, "Часы", watch));
     },
 
     // --- body: rebuilt whenever the source, the device list or SimpleZepp changes ---
@@ -98,64 +104,103 @@ Page(
       this.body = [];
       this.valueText = null;
       this.renderSwitch();
-
-      let y = LIST_TOP;
-      if (isWatchSource()) {
-        setText(this.sectionLabel, "НА ЧАСАХ");
-        const local = getLocal();
-        const count = local.tracks.length;
-        const label = count ? `${count} треков` : local.scanning ? "Читаю теги…" : "Нет музыки на часах";
-        y = this.row(y, "dev_watch_s.png", label, true, null);
-        if (count) y = this.row(y, null, "Список песен  ›", false, () => push({ url: "page/queue/index" }), true);
-      } else {
-        setText(this.sectionLabel, "ГДЕ ИГРАЕТ");
-        if (this.devices === null) {
-          this.add(text(100, y, 280, ROW, "Загрузка…", { size: 22, color: GRAY }));
-          y += ROW;
-        } else if (!this.devices.length) {
-          const msg = this.devicesError || "Нет устройств Spotify. Откройте Spotify на телефоне или ПК.";
-          this.add(text(90, y, 300, ROW * 2, msg, { size: 20, color: GRAY, wrap: true }));
-          y += ROW * 2;
-        } else {
-          this.devices.forEach((d, i) => {
-            y = this.row(y, deviceIcon(d, true), d.name, d.active, () => this.select(d), i < this.devices.length - 1);
-          });
-        }
-      }
-
-      this.renderVolumePill(y + 14);
-      this.renderBridgeLine(y + 70);
-      // Spacer so everything can scroll above the round bottom edge
-      this.add(text(0, y + 110, W, 120, ""));
+      this.renderVolumePill();
+      this.renderBridgeLine();
+      this.renderCards(this.cards());
     },
 
-    // One list row: icon, name, dot when active; returns the next row's y
-    row(y, icon, label, active, onClick, separator) {
-      if (onClick) {
-        this.add(
-          createWidget(widget.BUTTON, {
-            x: px(80),
-            y: px(y),
-            w: px(320),
-            h: px(ROW),
-            radius: px(14),
-            normal_color: DARK,
-            press_color: PILL,
-            text: "",
-            click_func: onClick,
-          })
-        );
+    // Cards for the current source: { icon, label, active, onClick }
+    cards() {
+      if (isWatchSource()) {
+        const local = getLocal();
+        const count = local.tracks.length;
+        const label = count ? `${count} треков` : local.scanning ? "Читаю теги…" : "Нет музыки";
+        const list = [{ icon: "dev_watch_mg.png", label, active: true, onClick: null }];
+        if (count) list.push({ icon: "queue.png", label: "Список песен", onClick: () => push({ url: "page/queue/index" }) });
+        return list;
       }
-      if (icon) this.add(createWidget(widget.IMG, { x: px(90), y: px(y + 9), w: px(36), h: px(36), src: icon }));
-      const name = this.add(
-        text(icon ? 138 : 96, y, 220, ROW, label, { size: 24, color: active ? MINT : 0xffffff, alignH: align.LEFT })
+      if (this.devices === null) return { message: "Загрузка…" };
+      if (!this.devices.length) {
+        return { message: this.devicesError || "Нет устройств Spotify. Откройте Spotify на телефоне или ПК." };
+      }
+      return this.devices.map((d) => ({
+        icon: deviceIcon(d, d.active ? "_mg" : "_m"),
+        label: d.name,
+        active: d.active,
+        onClick: () => this.select(d),
+      }));
+    },
+
+    renderCards(cards) {
+      if (!Array.isArray(cards)) {
+        this.add(text(70, CARDS_Y + 20, W - 140, 90, cards.message, { size: 20, color: GRAY, wrap: true }));
+        return;
+      }
+      const n = cards.length;
+      const rowW = n * CARD_W + (n - 1) * CARD_GAP;
+      // Up to three are centered; more start at the edge and scroll sideways
+      const startX = n <= 3 ? (W - rowW) / 2 : CARDS_EDGE;
+      const contentW = Math.max(W, startX + rowW + CARDS_EDGE);
+
+      const row = this.add(
+        createWidget(widget.VIEW_CONTAINER, {
+          x: 0,
+          y: px(CARDS_Y),
+          w: px(W),
+          h: px(CARD_H + 4),
+          scroll_enable: n > 3 ? 1 : 0,
+          scroll_frame_func: () => {
+            this.lastScroll = Date.now();
+          },
+        })
       );
-      if (onClick) onTap(name, onClick); // the label sits on top of the button
-      if (active) this.add(text(356, y, 30, ROW, "●", { size: 18, color: MINT }));
-      if (separator) {
-        this.add(createWidget(widget.FILL_RECT, { x: px(96), y: px(y + ROW - 1), w: px(288), h: 1, color: LINE }));
-      }
-      return y + ROW;
+      // Keeps the container as wide as the row so it can scroll horizontally
+      row.createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(contentW), h: px(CARD_H + 4), color: DARK });
+
+      const guard = (fn) => () => {
+        if (Date.now() - (this.lastScroll || 0) < SCROLL_TAP_GUARD_MS) return;
+        fn();
+      };
+      cards.forEach((c, i) => {
+        const x = startX + i * (CARD_W + CARD_GAP);
+        const onClick = c.onClick ? guard(c.onClick) : null;
+        row.createWidget(widget.BUTTON, {
+          x: px(x),
+          y: px(2),
+          w: px(CARD_W),
+          h: px(CARD_H),
+          radius: px(20),
+          normal_color: c.active ? ACTIVE : PILL,
+          press_color: c.onClick ? 0x3a3a3a : c.active ? ACTIVE : PILL,
+          text: "",
+          click_func: onClick || (() => {}),
+        });
+        const icon = row.createWidget(widget.IMG, {
+          x: px(x + (CARD_W - 56) / 2),
+          y: px(14),
+          w: px(56),
+          h: px(56),
+          auto_scale: true,
+          src: c.icon,
+        });
+        const label = row.createWidget(widget.TEXT, {
+          x: px(x + 6),
+          y: px(74),
+          w: px(CARD_W - 12),
+          h: px(50),
+          text: c.label,
+          text_size: px(19),
+          color: 0xffffff,
+          align_h: align.CENTER_H,
+          align_v: align.CENTER_V,
+          text_style: text_style.WRAP,
+        });
+        // Icon and label sit on top of the button, so they forward taps too
+        if (onClick) {
+          onTap(icon, onClick);
+          onTap(label, onClick);
+        }
+      });
     },
 
     // --- volume ---
@@ -172,11 +217,12 @@ Page(
       });
     },
 
-    renderVolumePill(y) {
-      this.add(createWidget(widget.FILL_RECT, { x: px(113), y: px(y), w: px(254), h: px(50), radius: px(25), color: PILL }));
-      const minus = this.add(text(118, y, 60, 50, "−", { size: 32 }));
-      const plus = this.add(text(302, y, 60, 50, "+", { size: 32 }));
-      this.valueText = this.add(text(178, y, 124, 50, "", { size: 24 }));
+    renderVolumePill() {
+      const y = VOLUME_Y;
+      this.add(createWidget(widget.FILL_RECT, { x: px(104), y: px(y), w: px(272), h: px(58), radius: px(29), color: PILL }));
+      const minus = this.add(text(110, y, 64, 58, "−", { size: 36 }));
+      const plus = this.add(text(306, y, 64, 58, "+", { size: 36 }));
+      this.valueText = this.add(text(174, y, 132, 58, "", { size: 28 }));
       onTap(minus, () => this.volume.change(-VOLUME_STEP));
       onTap(plus, () => this.volume.change(VOLUME_STEP));
       onTap(this.valueText, () => push({ url: "page/volume/index" }));
@@ -191,7 +237,7 @@ Page(
 
     // --- SimpleZepp (optional; the line is hidden when the bridge is absent) ---
 
-    renderBridgeLine(y) {
+    renderBridgeLine() {
       const b = getBridge();
       if (!b.available) return;
       let label;
@@ -205,7 +251,7 @@ Page(
           onClick = () => this.pairBridge();
         }
       } else label = wantsBridge() ? "SimpleZepp подключён" : "SimpleZepp неактивен";
-      const line = this.add(text(100, y, 280, 30, label, { size: 17, color }));
+      const line = this.add(text(100, BRIDGE_Y, 280, 28, label, { size: 17, color }));
       if (onClick) onTap(line, onClick);
     },
 
@@ -284,10 +330,7 @@ Page(
       }
       this.request({ method: "transfer", params: { id: device.id } }, { timeout: 10000 })
         .then(() => back())
-        .catch((e) => {
-          this.devicesError = formatError(e);
-          this.render();
-        });
+        .catch((e) => showToast({ content: formatError(e) }));
     },
 
     // The volume page replaces the key listener and may change the volume
