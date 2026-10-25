@@ -8,18 +8,17 @@ import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY, SOURCE_WATCH } from
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 import { deviceIcon } from "../../shared/devices";
 
-// Layout: source switch (Spotify | Watch), volume, the optional SimpleZepp line,
-// then one row of device cards across the widest part of the round screen
-// (up to three fit; more scroll sideways).
+// Layout: source switch (Spotify | Watch), one row of device cards across the
+// widest part of the round screen (up to three fit; more scroll sideways),
+// then volume and the optional SimpleZepp line.
 const LABEL = 0x8a8a8a;
 const PILL = 0x2a2a2a;
 const ACTIVE = 0x1a5c36;
-// Shifted down to center the block; lower would clip the outer cards' corners
-const LABEL_Y = 44;
-const SWITCH_Y = 78;
-const VOLUME_Y = 154;
-const BRIDGE_Y = 216;
-const CARDS_Y = 252;
+const LABEL_Y = 50;
+const SWITCH_Y = 82;
+const CARDS_Y = 158;
+const VOLUME_Y = 306;
+const BRIDGE_Y = 370;
 const CARD_W = 124;
 const CARD_H = 128;
 const CARD_GAP = 10;
