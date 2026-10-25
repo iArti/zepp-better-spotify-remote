@@ -1,4 +1,5 @@
 import { getLocal, isWatchSource } from "./local";
+import { t } from "./i18n";
 
 const SEND_DELAY_MS = 350;
 export const VOLUME_STEP = 5;
@@ -72,7 +73,7 @@ export function createVolume(page, onUpdate) {
       return supported;
     },
     viaBridge,
-    name: watch ? "Часы" : device ? device.name + (viaBridge ? " · SimpleZepp" : "") : "",
+    name: watch ? t("watch") : device ? device.name + (viaBridge ? " · SimpleZepp" : "") : "",
     get value() {
       return value;
     },

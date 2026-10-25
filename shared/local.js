@@ -4,6 +4,7 @@ import { localStorage } from "@zos/storage";
 import { readTags } from "./id3";
 import { compareText, albumKey, trackKey } from "./text";
 import { localSort } from "./config";
+import { t } from "./i18n";
 
 // "Music from the watch": plays files the system Music app stored on the watch.
 // The data dir is /storage/js_apps/data/<ID>, so ../../.. is /storage
@@ -387,25 +388,25 @@ class LocalPlayer {
 
   // Same shape as the Spotify state the control page renders
   state() {
-    const t = this.current();
+    const track = this.current();
     return {
       local: true,
       active: true,
       playing: this.playing,
-      title: t ? t.title : this.tracks.length ? "Выберите трек" : "",
-      artist: t
-        ? t.artist
+      title: track ? track.title : this.tracks.length ? t("chooseTrack") : "",
+      artist: track
+        ? track.artist
         : this.tracks.length
-          ? `${this.tracks.length} треков на часах`
+          ? t("tracksOnWatch", this.tracks.length)
           : this.scanning
-            ? "Читаю теги…"
-            : "Нет музыки на часах",
+            ? t("readingTags")
+            : t("noMusicOnWatch"),
       progress: this.position(),
       duration: this.duration,
       liked: false,
       trackId: null,
-      cover: this.coverFor(t),
-      device: { type: "Watch", name: "Часы", volume: this.getVolume() },
+      cover: this.coverFor(track),
+      device: { type: "Watch", name: t("watch"), volume: this.getVolume() },
     };
   }
 

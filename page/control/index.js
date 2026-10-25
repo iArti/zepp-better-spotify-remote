@@ -29,6 +29,7 @@ import { ensureFileReceiver } from "../../shared/files";
 import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
 import { getLocal, isWatchSource } from "../../shared/local";
+import { t } from "../../shared/i18n";
 
 // Spotify polling: every 3 s; with applyOptimizations rarely on the screensaver
 // (it is meant to stay on for a long time), right after the expected track end
@@ -297,7 +298,7 @@ Page(
 
       this.clock = text(180, top + 16, 120, 34, "", { size: 24 });
       this.titleText = text(64, top + 54, W - 128, 52, "", { size: 40, marquee: true });
-      this.artistText = text(90, top + 108, W - 180, 40, "Загрузка…", { size: 30, color: MINT });
+      this.artistText = text(90, top + 108, W - 180, 40, t("loading"), { size: 30, color: MINT });
 
       // Progress ring: track, value arc, knob
       this.ringTop = top;
@@ -422,7 +423,7 @@ Page(
         local.scannedThisRun = true;
         local.scan((done, total) => {
           if (!local.tracks.length) {
-            setText(this.artistText, `Читаю теги… ${done}/${total}`);
+            setText(this.artistText, t("readingTagsProgress", done, total));
             this.shown.artist = null;
           }
         });
@@ -500,7 +501,7 @@ Page(
 
       const hasTrack = s.active && s.title;
       const title = hasTrack ? s.title : "";
-      const artist = hasTrack || s.local ? s.artist || "" : fromCache ? "Загрузка…" : "Нет активного устройства";
+      const artist = hasTrack || s.local ? s.artist || "" : fromCache ? t("loading") : t("noActiveDevice");
       const saverArtist = hasTrack ? s.artist || "" : "";
       this.apply("title", title, (v) => setText(this.titleText, v));
       // Measuring text is the expensive part: only when the track changes

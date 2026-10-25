@@ -7,6 +7,7 @@ import { localStorage } from "@zos/storage";
 import { onGesture, offGesture, GESTURE_DOWN } from "@zos/interaction";
 import { W, GRAY, DARK, text, setText, iconButton, formatError, onTap } from "../../shared/ui";
 import { getThumbs } from "../../shared/thumbs";
+import { t } from "../../shared/i18n";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY } from "../../shared/local";
 
 const TOP = 100;
@@ -24,7 +25,7 @@ Page(
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
       iconButton(240, 44, 96, 48, "home.png", () => back());
 
-      this.row(TOP, "Любимые треки", "liked.png", () => this.play("play_liked", {}));
+      this.row(TOP, t("likedSongs"), "liked.png", () => this.play("play_liked", {}));
 
       this.status = text(60, TOP + ROW_H + 20, W - 120, 60, "", { size: 24, color: GRAY, wrap: true });
 
@@ -34,7 +35,7 @@ Page(
         cached = JSON.parse(localStorage.getItem("recent", "[]")) || [];
       } catch (e) {}
       if (cached.length) this.renderItems(cached);
-      else setText(this.status, "Загрузка…");
+      else setText(this.status, t("loading"));
 
       getApp().globalData.onThumb = (id, path) => {
         const img = this.state.thumbs[id];
@@ -64,7 +65,7 @@ Page(
       this.state.rows.forEach((w) => deleteWidget(w));
       this.state.rows = [];
       this.state.thumbs = {};
-      setText(this.status, items.length ? "" : "Нет недавних плейлистов");
+      setText(this.status, items.length ? "" : t("noRecent"));
 
       const thumbs = getThumbs();
       items.forEach((item, i) => {

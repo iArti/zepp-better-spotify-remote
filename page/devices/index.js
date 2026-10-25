@@ -7,6 +7,7 @@ import { W, GRAY, MINT, DARK, text, setText, onTap, formatError } from "../../sh
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY, SOURCE_WATCH } from "../../shared/local";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 import { deviceIcon } from "../../shared/devices";
+import { t } from "../../shared/i18n";
 
 // Layout: source switch (Spotify | Watch), one row of device cards across the
 // widest part of the round screen (up to three fit; more scroll sideways),
@@ -32,7 +33,7 @@ Page(
   BasePage({
     build() {
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
-      text(140, LABEL_Y, 200, 30, "ИСТОЧНИК", { size: 18, color: LABEL });
+      text(140, LABEL_Y, 200, 30, t("source"), { size: 18, color: LABEL });
 
       // Source switch: two halves on a pill
       createWidget(widget.FILL_RECT, {
@@ -44,7 +45,7 @@ Page(
         color: PILL,
       });
       this.spotifyBtn = this.segment(80, "Spotify", () => this.selectSpotify());
-      this.watchBtn = this.segment(242, "Часы", () => this.selectWatch());
+      this.watchBtn = this.segment(242, t("watch"), () => this.selectWatch());
 
       this.body = [];
       this.devices = null; // null = loading
@@ -89,7 +90,7 @@ Page(
     renderSwitch() {
       const watch = isWatchSource();
       this.spotifyBtn.setProperty(prop.MORE, this.segmentStyle(80, "Spotify", !watch));
-      this.watchBtn.setProperty(prop.MORE, this.segmentStyle(242, "Часы", watch));
+      this.watchBtn.setProperty(prop.MORE, this.segmentStyle(242, t("watch"), watch));
     },
 
     // --- body: rebuilt whenever the source, the device list or SimpleZepp changes ---
@@ -114,14 +115,14 @@ Page(
       if (isWatchSource()) {
         const local = getLocal();
         const count = local.tracks.length;
-        const label = count ? `${count} треков` : local.scanning ? "Читаю теги…" : "Нет музыки";
+        const label = count ? t("tracks", count) : local.scanning ? t("readingTags") : t("noMusic");
         const list = [{ icon: "dev_watch_mg.png", label, active: true, onClick: null }];
-        if (count) list.push({ icon: "queue.png", label: "Список песен", onClick: () => push({ url: "page/queue/index" }) });
+        if (count) list.push({ icon: "queue.png", label: t("songList"), onClick: () => push({ url: "page/queue/index" }) });
         return list;
       }
-      if (this.devices === null) return { message: "Загрузка…" };
+      if (this.devices === null) return { message: t("loading") };
       if (!this.devices.length) {
-        return { message: this.devicesError || "Нет устройств Spotify. Откройте Spotify на телефоне или ПК." };
+        return { message: this.devicesError || t("noSpotifyDevices") };
       }
       return this.devices.map((d) => ({
         icon: deviceIcon(d, d.active ? "_mg" : "_m"),
@@ -244,13 +245,13 @@ Page(
       let color = LABEL;
       let onClick = null;
       if (!b.paired) {
-        if (b.pairing) label = "Подтвердите на телефоне…";
+        if (b.pairing) label = t("confirmOnPhone");
         else {
-          label = "Подключить SimpleZepp";
+          label = t("connectSimpleZepp");
           color = MINT;
           onClick = () => this.pairBridge();
         }
-      } else label = wantsBridge() ? "SimpleZepp подключён" : "SimpleZepp неактивен";
+      } else label = wantsBridge() ? t("simpleZeppConnected") : t("simpleZeppInactive");
       const line = this.add(text(100, BRIDGE_Y, 280, 28, label, { size: 17, color }));
       if (onClick) onTap(line, onClick);
     },

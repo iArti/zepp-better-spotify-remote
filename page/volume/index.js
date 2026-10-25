@@ -4,6 +4,7 @@ import { px } from "@zos/utils";
 import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
 import { W, GREEN, GRAY, DARK, text, setText, iconButton, title, formatError } from "../../shared/ui";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
+import { t } from "../../shared/i18n";
 
 Page(
   BasePage({
@@ -14,7 +15,7 @@ Page(
       });
 
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
-      title("Громкость");
+      title(t("volume"));
       this.deviceText = text(80, 92, W - 160, 34, this.volume.name, { size: 24, color: GRAY });
 
       // Ring: background + value arc
@@ -48,8 +49,8 @@ Page(
       } else {
         const hint =
           getBridge().available && wantsBridge()
-            ? "Подключите SimpleZepp в «Устройствах»"
-            : "Spotify не меняет громкость на телефоне";
+            ? t("volumeConnectBridge")
+            : t("volumeUnsupported");
         text(70, 330, W - 140, 90, hint, { size: 24, color: GRAY, wrap: true });
       }
 

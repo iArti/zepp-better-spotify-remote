@@ -5,6 +5,7 @@ import { back } from "@zos/router";
 import { scrollTo } from "@zos/page";
 import { W, GRAY, GREEN, DARK, text, setText, listButton, title, formatError, onTap } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
+import { t } from "../../shared/i18n";
 
 // Current playlist: what is playing now and what comes next.
 // In "music from the watch" mode: the whole watch library in the configured order.
@@ -20,8 +21,8 @@ Page(
         this.buildWatchList();
         return;
       }
-      title("Текущий плейлист");
-      this.status = text(60, 200, W - 120, 80, "Загрузка…", { size: 26, color: GRAY, wrap: true });
+      title(t("currentPlaylist"));
+      this.status = text(60, 200, W - 120, 80, t("loading"), { size: 26, color: GRAY, wrap: true });
 
       this.request({ method: "queue" }, { timeout: 15000 })
         .then(({ result }) => this.renderQueue(result))
@@ -33,7 +34,7 @@ Page(
       const contextUri = s && s.contextUri;
 
       if (!current && !next.length) {
-        setText(this.status, "Очередь пуста");
+        setText(this.status, t("queueEmpty"));
         return;
       }
       setText(this.status, "");
@@ -56,9 +57,9 @@ Page(
 
     buildWatchList() {
       const local = getLocal();
-      title("Музыка с часов");
+      title(t("watchMusic"));
       if (!local.tracks.length) {
-        text(60, 200, W - 120, 80, local.scanning ? "Читаю теги…" : "Нет музыки на часах", {
+        text(60, 200, W - 120, 80, local.scanning ? t("readingTags") : t("noMusicOnWatch"), {
           size: 26,
           color: GRAY,
           wrap: true,

@@ -1,0 +1,95 @@
+msgid "source"
+msgstr "SOURCE"
+
+msgid "watch"
+msgstr "Watch"
+
+msgid "tracks"
+msgstr "Tracks: {0}"
+
+msgid "tracksOnWatch"
+msgstr "Tracks on watch: {0}"
+
+msgid "readingTags"
+msgstr "Reading tags…"
+
+msgid "readingTagsProgress"
+msgstr "Reading tags… {0}/{1}"
+
+msgid "noMusic"
+msgstr "No music"
+
+msgid "noMusicOnWatch"
+msgstr "No music on watch"
+
+msgid "chooseTrack"
+msgstr "Pick a track"
+
+msgid "songList"
+msgstr "Song list"
+
+msgid "loading"
+msgstr "Loading…"
+
+msgid "noSpotifyDevices"
+msgstr "No Spotify devices. Open Spotify on your phone or PC."
+
+msgid "confirmOnPhone"
+msgstr "Confirm on your phone…"
+
+msgid "connectSimpleZepp"
+msgstr "Connect SimpleZepp"
+
+msgid "simpleZeppConnected"
+msgstr "SimpleZepp connected"
+
+msgid "simpleZeppInactive"
+msgstr "SimpleZepp inactive"
+
+msgid "likedSongs"
+msgstr "Liked Songs"
+
+msgid "noRecent"
+msgstr "No recent playlists"
+
+msgid "currentPlaylist"
+msgstr "Current playlist"
+
+msgid "queueEmpty"
+msgstr "Queue is empty"
+
+msgid "watchMusic"
+msgstr "Music on watch"
+
+msgid "noActiveDevice"
+msgstr "No active device"
+
+msgid "volume"
+msgstr "Volume"
+
+msgid "volumeConnectBridge"
+msgstr "Connect SimpleZepp in Devices"
+
+msgid "volumeUnsupported"
+msgstr "Spotify can't change the phone volume"
+
+msgid "errNoCredentials"
+msgstr "No Spotify keys (secrets.js)"
+
+msgid "errAuth"
+msgstr "Spotify sign-in failed"
+
+msgid "errPremium"
+msgstr "Spotify Premium required"
+
+msgid "errBridgeUnpaired"
+msgstr "SimpleZepp: pair again"
+
+msgid "errBridge"
+msgstr "SimpleZepp not responding"
+
+msgid "errTimeout"
+msgstr "No connection to phone"
+
+msgid "errGeneric"
+msgstr "Error: {0}"

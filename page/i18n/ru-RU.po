@@ -1,0 +1,95 @@
+msgid "source"
+msgstr "ИСТОЧНИК"
+
+msgid "watch"
+msgstr "Часы"
+
+msgid "tracks"
+msgstr "Треков: {0}"
+
+msgid "tracksOnWatch"
+msgstr "Треков на часах: {0}"
+
+msgid "readingTags"
+msgstr "Читаю теги…"
+
+msgid "readingTagsProgress"
+msgstr "Читаю теги… {0}/{1}"
+
+msgid "noMusic"
+msgstr "Нет музыки"
+
+msgid "noMusicOnWatch"
+msgstr "Нет музыки на часах"
+
+msgid "chooseTrack"
+msgstr "Выберите трек"
+
+msgid "songList"
+msgstr "Список песен"
+
+msgid "loading"
+msgstr "Загрузка…"
+
+msgid "noSpotifyDevices"
+msgstr "Нет устройств Spotify. Откройте Spotify на телефоне или ПК."
+
+msgid "confirmOnPhone"
+msgstr "Подтвердите на телефоне…"
+
+msgid "connectSimpleZepp"
+msgstr "Подключить SimpleZepp"
+
+msgid "simpleZeppConnected"
+msgstr "SimpleZepp подключён"
+
+msgid "simpleZeppInactive"
+msgstr "SimpleZepp неактивен"
+
+msgid "likedSongs"
+msgstr "Любимые треки"
+
+msgid "noRecent"
+msgstr "Нет недавних плейлистов"
+
+msgid "currentPlaylist"
+msgstr "Текущий плейлист"
+
+msgid "queueEmpty"
+msgstr "Очередь пуста"
+
+msgid "watchMusic"
+msgstr "Музыка с часов"
+
+msgid "noActiveDevice"
+msgstr "Нет активного устройства"
+
+msgid "volume"
+msgstr "Громкость"
+
+msgid "volumeConnectBridge"
+msgstr "Подключите SimpleZepp в «Устройствах»"
+
+msgid "volumeUnsupported"
+msgstr "Spotify не меняет громкость на телефоне"
+
+msgid "errNoCredentials"
+msgstr "Нет ключей Spotify (secrets.js)"
+
+msgid "errAuth"
+msgstr "Ошибка входа в Spotify"
+
+msgid "errPremium"
+msgstr "Нужен Spotify Premium"
+
+msgid "errBridgeUnpaired"
+msgstr "SimpleZepp: нужна повторная привязка"
+
+msgid "errBridge"
+msgstr "SimpleZepp не отвечает"
+
+msgid "errTimeout"
+msgstr "Нет связи с телефоном"
+
+msgid "errGeneric"
+msgstr "Ошибка: {0}"

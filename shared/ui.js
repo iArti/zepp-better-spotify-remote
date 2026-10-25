@@ -1,5 +1,6 @@
 import { createWidget, widget, align, text_style, event, prop } from "@zos/ui";
 import { px } from "@zos/utils";
+import { t } from "./i18n";
 
 export const W = 480; // design width; px() scales to the real screen
 export const GREEN = 0x1ed760;
@@ -83,14 +84,14 @@ export function title(value) {
 
 export function formatError(err) {
   const msg = String((err && (err.message || err)) || "");
-  if (msg.includes("no_credentials")) return "Нет ключей Spotify (secrets.js)";
-  if (msg.includes("auth_failed")) return "Ошибка входа в Spotify";
-  if (msg.includes("NO_ACTIVE_DEVICE") || msg.includes("404")) return "Нет активного устройства";
-  if (msg.includes("PREMIUM_REQUIRED") || msg.includes("403")) return "Нужен Spotify Premium";
-  if (msg.includes("simplezepp_unpaired")) return "SimpleZepp: нужна повторная привязка";
-  if (msg.includes("simplezepp")) return "SimpleZepp не отвечает";
-  if (msg.toLowerCase().includes("timeout")) return "Нет связи с телефоном";
-  return "Ошибка: " + msg.slice(0, 40);
+  if (msg.includes("no_credentials")) return t("errNoCredentials");
+  if (msg.includes("auth_failed")) return t("errAuth");
+  if (msg.includes("NO_ACTIVE_DEVICE") || msg.includes("404")) return t("noActiveDevice");
+  if (msg.includes("PREMIUM_REQUIRED") || msg.includes("403")) return t("errPremium");
+  if (msg.includes("simplezepp_unpaired")) return t("errBridgeUnpaired");
+  if (msg.includes("simplezepp")) return t("errBridge");
+  if (msg.toLowerCase().includes("timeout")) return t("errTimeout");
+  return t("errGeneric", msg.slice(0, 40));
 }
 
 export function formatTime(ms) {
