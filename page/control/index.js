@@ -218,7 +218,7 @@ Page(
     buildSaver(top) {
       this.background(top, "vignette_light.png");
       const tapLayer = this.lastWidget;
-      this.saverClock = text(170, top + 10, 140, 40, "", { size: 34, color: MINT });
+      this.saverClock = text(170, top + 10, 140, 40, "", { size: 32, color: MINT });
       this.saverTitle = text(SAVER_TEXT_X, top + 342, W - 2 * SAVER_TEXT_X, 60, "", { size: SAVER_TITLE_SIZE });
       this.saverArtist = text(SAVER_TEXT_X, top + 404, W - 2 * SAVER_TEXT_X, 44, "", {
         size: SAVER_ARTIST_SIZE,

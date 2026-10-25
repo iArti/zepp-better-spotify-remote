@@ -126,7 +126,7 @@ def smooth(t):
 
 
 def render_vignette(size):
-    """Darkens the cover: base dim + radial edge falloff + top/bottom bands."""
+    """Darkens the cover: base dim + radial edge falloff, the same on every side."""
     rows = []
     c = (size - 1) / 2
     for y in range(size):
@@ -135,9 +135,7 @@ def render_vignette(size):
             r = math.hypot(x - c, y - c) / c
             t = min(max((r - 0.35) / 0.65, 0.0), 1.0)
             edge = t * t * (3 - 2 * t)
-            v = y / (size - 1)
-            band = max(0.0, 0.30 - v) / 0.30 * 0.30 + max(0.0, v - 0.65) / 0.35 * 0.30
-            a = min(1.0, 0.30 + 0.60 * edge + band)
+            a = min(1.0, 0.30 + 0.65 * edge)
             row += [0, 0, 0, round(255 * a)]
         rows.append(row)
     write_png(os.path.join(OUT, "vignette.png"), size, size, rows)
@@ -230,9 +228,9 @@ def main():
     render_layers("thumb_empty", 96, [(rect(0, 0, 1, 1, 0.06), (60, 60, 60)), (note, (160, 160, 160))])
     render_icon("home", 48, home)
     render_vignette(466)
-    # Screensaver: cover stays clear, only edges and the text area darken
+    # Screensaver: cover stays clear in the middle, edges darken evenly
     render_alpha("vignette_light", 466,
-                 lambda r, v: 0.12 + 0.72 * smooth((r - 0.45) / 0.55) + 0.5 * smooth((v - 0.6) / 0.32))
+                 lambda r, v: 0.12 + 0.78 * smooth((r - 0.45) / 0.55))
 
 
 if __name__ == "__main__":
