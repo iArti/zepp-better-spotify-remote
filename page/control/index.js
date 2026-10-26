@@ -536,10 +536,11 @@ Page(
       );
 
       this.apply("play", s.playing ? "pause.png" : "play.png", (v) => this.playBtn.setProperty(prop.SRC, v));
-      this.apply("like", s.liked ? "like_done.png" : "like_add.png", (v) => this.likeBtn.setProperty(prop.SRC, v));
+      // In watch mode the like spot holds the shuffle toggle
+      const likeIcon = s.local ? (s.shuffle ? "shuffle_on.png" : "shuffle_off.png") : s.liked ? "like_done.png" : "like_add.png";
+      this.apply("like", likeIcon, (v) => this.likeBtn.setProperty(prop.SRC, v));
       this.apply("device", deviceIcon(s.device), (v) => this.deviceBtn.setProperty(prop.SRC, v));
-      // Like only exists for Spotify; covers come from the PC-made index in watch mode
-      this.apply("likeVisible", !s.local, (v) => this.likeBtn.setProperty(prop.VISIBLE, v));
+      // Covers come from the PC-made index in watch mode
       this.setCover(s.local ? s.cover || "" : localStorage.getItem("coverPath", "") || "");
       this.updateProgress();
       if (!fromCache) this.applyScreenPolicy(!!s.playing);
@@ -608,6 +609,10 @@ Page(
     },
 
     toggleLike() {
+      if (isWatchSource()) {
+        this.local.setShuffle(!this.local.shuffle);
+        return;
+      }
       const s = this.state.player;
       if (!s || !s.trackId) return;
       const liked = !s.liked;

@@ -69,6 +69,22 @@ def ring(cx, cy, r0, r1, a0=None, a1=None):
     return inside
 
 
+def segment(x0, y0, x1, y1, w):
+    """Thick line with round caps."""
+    dx, dy = x1 - x0, y1 - y0
+    length2 = dx * dx + dy * dy
+
+    def inside(x, y):
+        t = max(0.0, min(1.0, ((x - x0) * dx + (y - y0) * dy) / length2))
+        return math.hypot(x - (x0 + t * dx), y - (y0 + t * dy)) <= w / 2
+    return inside
+
+
+def scaled(shape, k):
+    """Shape shrunk by k around the center."""
+    return lambda x, y: shape((x - 0.5) / k + 0.5, (y - 0.5) / k + 0.5)
+
+
 def union(*shapes):
     return lambda x, y: any(s(x, y) for s in shapes)
 
@@ -157,6 +173,11 @@ def main():
     # "Add to library": ring with a plus
     like_add = union(ring(0.5, 0.5, 0.42, 0.49),
                      rect(0.46, 0.27, 0.54, 0.73, 0.02), rect(0.27, 0.46, 0.73, 0.54, 0.02))
+    # Shuffle: two crossing arrows
+    shuffle = union(segment(0.06, 0.28, 0.30, 0.28, 0.15), segment(0.30, 0.28, 0.62, 0.72, 0.15),
+                    segment(0.62, 0.72, 0.76, 0.72, 0.15), poly([(0.74, 0.52), (1.0, 0.72), (0.74, 0.92)]),
+                    segment(0.06, 0.72, 0.30, 0.72, 0.15), segment(0.30, 0.72, 0.62, 0.28, 0.15),
+                    segment(0.62, 0.28, 0.76, 0.28, 0.15), poly([(0.74, 0.08), (1.0, 0.28), (0.74, 0.48)]))
     check = poly([(0.24, 0.52), (0.32, 0.44), (0.44, 0.56), (0.70, 0.30), (0.78, 0.38), (0.44, 0.72)])
     # Queue / playlists: outlined pill on top, two lines below
     queue = union(minus(rect(0.10, 0.08, 0.90, 0.36, 0.14), rect(0.17, 0.15, 0.83, 0.29, 0.07)),
@@ -177,6 +198,8 @@ def main():
     render_icon("volume", 44, speaker)
     render_icon("like_add", 64, like_add)
     render_layers("like_done", 64, [(circle(0.5, 0.5, 0.49), (30, 215, 96)), (check, (18, 18, 18))])
+    render_icon("shuffle_off", 64, union(ring(0.5, 0.5, 0.42, 0.49), scaled(shuffle, 0.54)))
+    render_layers("shuffle_on", 64, [(circle(0.5, 0.5, 0.49), (30, 215, 96)), (scaled(shuffle, 0.54), (18, 18, 18))])
     render_icon("queue", 54, queue)
     render_icon("devices", 64, devices, (30, 215, 96))
 

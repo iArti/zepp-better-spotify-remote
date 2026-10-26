@@ -29,7 +29,7 @@ Wearing the watch on your right hand? Set `rightHandMode = true` in `shared/conf
 
 ## Experimental: music from the watch
 
-Devices → "Музыка с часов" plays the tracks you uploaded to the watch with the stock Zepp Music app, through your Bluetooth headphones, no phone needed. The current-playlist button turns into the list of those tracks; sort order is `localSort` in `shared/config.js` (`"name"`, `"artist"` or `"album"`, non-Latin titles go first).
+Devices → "Музыка с часов" plays the tracks you uploaded to the watch with the stock Zepp Music app, through your Bluetooth headphones, no phone needed. The current-playlist button turns into the list of those tracks; sort order is `localSort` in `shared/config.js` (`"name"`, `"artist"` or `"album"`, non-Latin titles go first). The like button becomes a shuffle toggle: every track plays once per round in random order, "previous" walks back through what was played.
 
 It's experimental because it only works thanks to an oversight in the watch's file sandbox: the app reaches the system music folder through `data://../../../Downloads/Music/list`. A firmware update can close that any day. Tags are read straight from the files on the watch.
 

@@ -14,6 +14,8 @@ const AUDIO_EXT = /\.(mp3|opus)$/i;
 const INDEX_KEY = "localIndex"; // { file: tags } cache
 const SOURCE_KEY = "source";
 const LAST_KEY = "localLast"; // file of the last played track
+const SHUFFLE_KEY = "localShuffle"; // "1" when shuffle is on
+const HISTORY_MAX = 50; // shuffled tracks "previous" can go back through
 // The player reports -1 until a track is prepared and does not keep the volume
 // between tracks, so the app keeps it and re-applies it on every track
 const VOLUME_KEY = "localVolume";
@@ -90,6 +92,9 @@ class LocalPlayer {
     this.scanning = false;
     this.onChange = null; // set by the control page
     this.covers = loadCoverIndex();
+    this.shuffle = localStorage.getItem(SHUFFLE_KEY, "") === "1";
+    this.bag = null; // shuffle: track indices not played yet in this round
+    this.history = []; // shuffle: indices played before the current one
     this.loadIndex();
   }
 
@@ -107,6 +112,9 @@ class LocalPlayer {
     const current = this.current();
     this.tracks = list.sort(SORTS[localSort] || SORTS.name);
     this.index = current ? this.tracks.findIndex((t) => t.file === current.file) : -1;
+    // Indices changed
+    this.bag = null;
+    this.history = [];
   }
 
   // Reads tags of new files in chunks so the UI stays responsive
@@ -297,6 +305,7 @@ class LocalPlayer {
     this.gen = (this.gen || 0) + 1; // cancels pending auto-resume / auto-next
     this.completed = false;
     this.index = ((i % this.tracks.length) + this.tracks.length) % this.tracks.length;
+    if (this.bag) this.bag = this.bag.filter((k) => k !== this.index);
     this.ensurePlayer();
     this.prepared = false;
     this.playing = false;
@@ -339,11 +348,35 @@ class LocalPlayer {
   }
 
   next() {
-    this.playIndex(this.index + 1);
+    if (!this.shuffle) {
+      this.playIndex(this.index + 1);
+      return;
+    }
+    if (this.index >= 0) {
+      this.history.push(this.index);
+      if (this.history.length > HISTORY_MAX) this.history.shift();
+    }
+    this.playIndex(this.pickShuffled());
   }
 
   prev() {
-    this.playIndex(this.index - 1);
+    if (this.shuffle && this.history.length) this.playIndex(this.history.pop());
+    else this.playIndex(this.index - 1);
+  }
+
+  // Every track once per round, in random order
+  pickShuffled() {
+    if (!this.bag || !this.bag.length) this.bag = this.tracks.map((_, i) => i).filter((i) => i !== this.index);
+    if (!this.bag.length) return Math.max(this.index, 0);
+    return this.bag.splice(Math.floor(Math.random() * this.bag.length), 1)[0];
+  }
+
+  setShuffle(on) {
+    this.shuffle = on;
+    localStorage.setItem(SHUFFLE_KEY, on ? "1" : "");
+    this.bag = null;
+    this.history = [];
+    this.emit();
   }
 
   stop() {
@@ -404,6 +437,7 @@ class LocalPlayer {
       progress: this.position(),
       duration: this.duration,
       liked: false,
+      shuffle: this.shuffle,
       trackId: null,
       cover: this.coverFor(track),
       device: { type: "Watch", name: t("watch"), volume: this.getVolume() },
