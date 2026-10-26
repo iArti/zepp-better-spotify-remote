@@ -3,7 +3,7 @@ import { createWidget, deleteWidget, widget, prop, align, text_style } from "@zo
 import { px } from "@zos/utils";
 import { back, push } from "@zos/router";
 import { onKey, offKey, showToast, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
-import { W, GRAY, MINT, DARK, text, setText, onTap, formatError } from "../../shared/ui";
+import { W, GRAY, MINT, DARK, text, setText, onTap, formatError, ignorePalm } from "../../shared/ui";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY, SOURCE_WATCH } from "../../shared/local";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 import { deviceIcon } from "../../shared/devices";
@@ -32,6 +32,7 @@ const PAIR_POLL_LIMIT = 48; // ~95 s, a bit longer than the phone-side pairing w
 Page(
   BasePage({
     build() {
+      ignorePalm();
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
       text(140, LABEL_Y, 200, 30, t("source"), { size: 18, color: LABEL });
 

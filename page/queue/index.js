@@ -16,7 +16,7 @@ import {
   GESTURE_UP,
   GESTURE_DOWN,
 } from "@zos/interaction";
-import { W, GREEN, MINT, DARK, text, setText, formatError } from "../../shared/ui";
+import { W, GREEN, MINT, DARK, text, setText, formatError, ignorePalm } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
 
@@ -64,6 +64,7 @@ const ARC_MIN_THUMB = 8; // degrees
 Page(
   BasePage({
     build() {
+      ignorePalm();
       this.touch(createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK }));
       const watch = isWatchSource();
       this.touch(text(90, 40, W - 180, 26, t(watch ? "watchMusic" : "currentPlaylist").toUpperCase(), { size: 15, color: LABEL }));

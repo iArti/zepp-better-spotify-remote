@@ -1,5 +1,6 @@
 import { createWidget, widget, align, text_style, event, prop } from "@zos/ui";
 import { px } from "@zos/utils";
+import { pausePalmScreenOff } from "@zos/display";
 import { t } from "./i18n";
 
 export const W = 480; // design width; px() scales to the real screen
@@ -98,4 +99,15 @@ export function formatTime(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(s / 60);
   return m + ":" + String(s % 60).padStart(2, "0");
+}
+
+// A palm (or water) over the screen must not turn it off and close the app;
+// the control page turns that into a pause instead. Called by every page, since
+// the setting may not survive a page change.
+export function ignorePalm() {
+  try {
+    pausePalmScreenOff({ duration: 0 });
+  } catch (e) {
+    console.log("pausePalmScreenOff failed", e);
+  }
 }

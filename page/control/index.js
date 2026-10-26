@@ -11,7 +11,7 @@ import {
   SCROLL_ANIMATION_NONE,
   SCROLL_ANIMATION_SMOOTH,
 } from "@zos/page";
-import { setPageBrightTime, pauseDropWristScreenOff, resetDropWristScreenOff } from "@zos/display";
+import { setPageBrightTime, pauseDropWristScreenOff, resetDropWristScreenOff, resetPalmScreenOff } from "@zos/display";
 import {
   onKey,
   offKey,
@@ -26,7 +26,7 @@ import {
   KEY_EVENT_LONG_PRESS,
   GESTURE_UP,
 } from "@zos/interaction";
-import { W, GREEN, MINT, DARK, text, setText, iconButton, formatError } from "../../shared/ui";
+import { W, GREEN, MINT, DARK, text, setText, iconButton, formatError, ignorePalm } from "../../shared/ui";
 import { ensureFileReceiver } from "../../shared/files";
 import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
@@ -343,6 +343,7 @@ Page(
 
     // Only one key/gesture listener exists system-wide, so rebind when we come back
     bindInput() {
+      ignorePalm();
       onKey({
         callback: (key, keyEvent) => (rightHandMode ? this.onKeyRightHand(key, keyEvent) : this.onKeyDefault(key, keyEvent)),
       });
@@ -642,6 +643,7 @@ Page(
         offKey();
         offGesture();
         resetDropWristScreenOff();
+        resetPalmScreenOff();
       } catch (e) {}
     },
   })

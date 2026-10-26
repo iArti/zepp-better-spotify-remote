@@ -5,7 +5,7 @@ import { back } from "@zos/router";
 import { getScrollTop } from "@zos/page";
 import { localStorage } from "@zos/storage";
 import { onGesture, offGesture, GESTURE_DOWN } from "@zos/interaction";
-import { W, GRAY, DARK, text, setText, iconButton, formatError, onTap } from "../../shared/ui";
+import { W, GRAY, DARK, text, setText, iconButton, formatError, onTap, ignorePalm } from "../../shared/ui";
 import { getThumbs } from "../../shared/thumbs";
 import { t } from "../../shared/i18n";
 import { getLocal, isWatchSource, setSource, SOURCE_SPOTIFY } from "../../shared/local";
@@ -22,6 +22,7 @@ Page(
     },
 
     build() {
+      ignorePalm();
       createWidget(widget.FILL_RECT, { x: 0, y: 0, w: px(W), h: px(W), color: DARK });
       iconButton(240, 44, 96, 48, "home.png", () => back());
 

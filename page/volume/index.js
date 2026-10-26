@@ -2,13 +2,14 @@ import { BasePage } from "@zeppos/zml/base-page";
 import { createWidget, widget, prop } from "@zos/ui";
 import { px } from "@zos/utils";
 import { onKey, offKey, KEY_UP, KEY_DOWN, KEY_EVENT_CLICK } from "@zos/interaction";
-import { W, GREEN, GRAY, DARK, text, setText, iconButton, title, formatError } from "../../shared/ui";
+import { W, GREEN, GRAY, DARK, text, setText, iconButton, title, formatError, ignorePalm } from "../../shared/ui";
 import { createVolume, getBridge, wantsBridge, VOLUME_STEP } from "../../shared/volume";
 import { t } from "../../shared/i18n";
 
 Page(
   BasePage({
     build() {
+      ignorePalm();
       this.volume = createVolume(this, (value, err) => {
         if (err) setText(this.deviceText, formatError(err));
         else this.render();

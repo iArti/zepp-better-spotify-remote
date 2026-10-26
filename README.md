@@ -4,7 +4,7 @@
 
 Spotify remote for Zepp OS watches. Made it because Music Controller from the store says "loading" for like five seconds every time, doesn't look great and ignores the hardware buttons. This one opens instantly (shows the last known state, fetches fresh data in the background), puts the track cover in the background and a clock on top.
 
-Screens: screensaver (cover, clock; tap = pause, double tap left/right = previous/next), controls (progress ring around play, like, current playlist, device picker with volume), swipe up for the library with Liked Songs and recent playlists. The screen stays on while music plays and times out after 3 minutes on pause. Covering the screen with your palm pauses the music; raising the wrist refreshes the state right away. Built for myself and an Amazfit Active 3 Premium; other round Zepp OS 3.6+ watches will probably work, not tested. The UI is in English and Russian (follows the watch language).
+Screens: screensaver (cover, clock; tap = pause, double tap left/right = previous/next), controls (progress ring around play, like, current playlist, device picker with volume), swipe up for the library with Liked Songs and recent playlists. The screen stays on while music plays and times out after 3 minutes on pause. Covering the screen with your palm pauses the music instead of turning the screen off (water triggers it too, so a pause is the safer outcome); raising the wrist refreshes the state right away. Built for myself and an Amazfit Active 3 Premium; other round Zepp OS 3.6+ watches will probably work, not tested. The UI is in English and Russian (follows the watch language).
 
 ## Install
 
