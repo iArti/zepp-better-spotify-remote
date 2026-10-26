@@ -17,6 +17,8 @@ import {
   offKey,
   onGesture,
   offGesture,
+  onWristMotion,
+  WRIST_MOTION_LIFT,
   KEY_SELECT,
   KEY_UP,
   KEY_DOWN,
@@ -30,6 +32,10 @@ import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
+
+// onWristMotion event types
+const WRIST_PALM = 0;
+const WRIST_EVENT = 3;
 
 // Spotify polling: every 3 s; with applyOptimizations rarely on the screensaver
 // (it is meant to stay on for a long time), right after the expected track end
@@ -347,6 +353,23 @@ Page(
           return true;
         },
       });
+      // There is no offWristMotion: the listener stays after this page is gone
+      onWristMotion({
+        callback: (r) => {
+          try {
+            this.onWristMotion(r);
+          } catch (e) {
+            console.log("wrist motion handler failed", e);
+          }
+        },
+      });
+    },
+
+    // Palm over the screen = pause (never resumes); raising the wrist = refresh now
+    onWristMotion({ type, motion }) {
+      console.log("wrist motion", type, motion);
+      if (type === WRIST_PALM) this.pause();
+      else if (type === WRIST_EVENT && motion === WRIST_MOTION_LIFT && !isWatchSource()) this.refresh();
     },
 
     // Select: click = play/pause, long press = next track
@@ -551,6 +574,17 @@ Page(
     showError(e) {
       setText(this.artistText, formatError(e));
       this.shown.artist = null; // the next render must restore the artist line
+    },
+
+    pause() {
+      if (isWatchSource()) {
+        if (this.local.playing) this.local.toggle();
+        return;
+      }
+      const s = this.state.player;
+      if (!s || !s.playing) return;
+      this.optimistic({ playing: false });
+      this.command("pause");
     },
 
     togglePlay() {
