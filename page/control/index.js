@@ -49,6 +49,9 @@ const MAX_BRIGHT_MS = 2147483000;
 // Screensaver taps: one = play/pause, two = prev (left half) / next (right half)
 const DOUBLE_TAP_MS = 300;
 const TAP_SLOP = 24; // finger movement that still counts as a tap, not a swipe
+// Holding the like button swaps it with a shuffle toggle (Spotify; remembered)
+const LIKE_HOLD_MS = 600;
+const LIKE_SLOT_KEY = "likeSlot"; // "like" or "shuffle"
 // Page dots on the screensaver fade out after this
 const SAVER_DOTS_MS = 2000;
 // Screensaver text: no marquee, no ellipsis; long lines run off the right edge into the vignette
@@ -330,7 +333,8 @@ Page(
       iconButton(394, top + 240, 120, 84, "next.png", () => this.command("next"));
 
       // Bottom row: like, current playlist, devices
-      this.likeBtn = iconButton(240 - BOTTOM_DX, top + BOTTOM_Y, 96, 64, "like_add.png", () => this.toggleLike());
+      this.likeBtn = iconButton(240 - BOTTOM_DX, top + BOTTOM_Y, 96, 64, "like_add.png", null);
+      this.bindLikePress(this.likeBtn);
       iconButton(240, top + QUEUE_Y, 90, 54, "queue.png", () =>
         push({ url: "page/queue/index" })
       );
@@ -506,7 +510,7 @@ Page(
     // The cache is for instant start-up; rewrite it only when something visible changed
     persist(s) {
       const d = s.device || {};
-      const key = [s.title, s.artist, s.playing, s.liked, d.id, d.type, s.coverId].join("|");
+      const key = [s.title, s.artist, s.playing, s.liked, s.shuffle, d.id, d.type, s.coverId].join("|");
       if (key === this.savedKey) return;
       this.savedKey = key;
       localStorage.setItem("state", JSON.stringify(s));
@@ -536,8 +540,10 @@ Page(
       );
 
       this.apply("play", s.playing ? "pause.png" : "play.png", (v) => this.playBtn.setProperty(prop.SRC, v));
-      // In watch mode the like spot holds the shuffle toggle
-      const likeIcon = s.local ? (s.shuffle ? "shuffle_on.png" : "shuffle_off.png") : s.liked ? "like_done.png" : "like_add.png";
+      // In watch mode the like spot always holds the shuffle toggle
+      const likeIcon = this.likeSlotIsShuffle(s)
+        ? s.shuffle ? "shuffle_on.png" : "shuffle_off.png"
+        : s.liked ? "like_done.png" : "like_add.png";
       this.apply("like", likeIcon, (v) => this.likeBtn.setProperty(prop.SRC, v));
       this.apply("device", deviceIcon(s.device), (v) => this.deviceBtn.setProperty(prop.SRC, v));
       // Covers come from the PC-made index in watch mode
@@ -608,9 +614,66 @@ Page(
       this.render({ ...s, progress: s.progress + elapsed, ...patch });
     },
 
-    toggleLike() {
+    likeSlotIsShuffle(s) {
+      return isWatchSource() || !!(s && s.local) || localStorage.getItem(LIKE_SLOT_KEY, "like") === "shuffle";
+    },
+
+    // Tap = like / shuffle, hold = swap the two (Spotify only)
+    bindLikePress(w) {
+      let down = null;
+      let held = false;
+      const cancelHold = () => {
+        if (this.likeHoldTimer) clearTimeout(this.likeHoldTimer);
+        this.likeHoldTimer = null;
+      };
+      w.addEventListener(event.CLICK_DOWN, (e) => {
+        down = { x: e.x, y: e.y };
+        held = false;
+        cancelHold();
+        this.likeHoldTimer = setTimeout(() => {
+          this.likeHoldTimer = null;
+          held = true;
+          this.swapLikeSlot();
+        }, LIKE_HOLD_MS);
+      });
+      // A swipe between screens that starts on the button is not a hold
+      w.addEventListener(event.MOVE, (e) => {
+        if (down && (Math.abs(e.x - down.x) > px(TAP_SLOP) || Math.abs(e.y - down.y) > px(TAP_SLOP))) cancelHold();
+      });
+      w.addEventListener(event.CLICK_UP, (e) => {
+        cancelHold();
+        const start = down;
+        down = null;
+        if (held || !start) return;
+        if (Math.abs(e.x - start.x) > px(TAP_SLOP) || Math.abs(e.y - start.y) > px(TAP_SLOP)) return;
+        this.toggleLike();
+      });
+    },
+
+    swapLikeSlot() {
+      if (isWatchSource()) return;
+      const shuffle = localStorage.getItem(LIKE_SLOT_KEY, "like") === "shuffle";
+      localStorage.setItem(LIKE_SLOT_KEY, shuffle ? "like" : "shuffle");
+      this.optimistic({});
+    },
+
+    toggleShuffle() {
       if (isWatchSource()) {
         this.local.setShuffle(!this.local.shuffle);
+        return;
+      }
+      const s = this.state.player;
+      if (!s) return;
+      const on = !s.shuffle;
+      this.optimistic({ shuffle: on });
+      this.request({ method: "shuffle", params: { on } }, { timeout: 8000 })
+        .then(() => setTimeout(() => this.refresh(), 400))
+        .catch((e) => this.showError(e));
+    },
+
+    toggleLike() {
+      if (this.likeSlotIsShuffle(this.state.player)) {
+        this.toggleShuffle();
         return;
       }
       const s = this.state.player;
@@ -638,6 +701,7 @@ Page(
       this.state.timers.forEach((t) => clearInterval(t));
       if (this.pollTimer) clearTimeout(this.pollTimer);
       if (this.tapTimer) clearTimeout(this.tapTimer);
+      if (this.likeHoldTimer) clearTimeout(this.likeHoldTimer);
       if (this.flashTimer) clearTimeout(this.flashTimer);
       if (this.dotsTimer) clearTimeout(this.dotsTimer);
       getApp().globalData.onCover = null;

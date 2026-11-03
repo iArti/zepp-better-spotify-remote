@@ -121,6 +121,7 @@ function compactState(player) {
     trackId: isEpisode ? null : item.id,
     contextUri: player.context ? player.context.uri : null,
     liked: false,
+    shuffle: !!player.shuffle_state,
     title: item.name,
     artist: isEpisode
       ? item.show && item.show.name
@@ -276,6 +277,9 @@ const handlers = {
   },
   prev() {
     return spotify("POST", "/me/player/previous");
+  },
+  shuffle({ on }) {
+    return spotify("PUT", `/me/player/shuffle?state=${on ? "true" : "false"}`);
   },
   like({ id }) {
     return spotify("PUT", `/me/tracks?ids=${id}`);
