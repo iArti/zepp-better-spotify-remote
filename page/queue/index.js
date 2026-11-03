@@ -19,6 +19,7 @@ import {
 import { W, GREEN, MINT, DARK, text, setText, formatError, ignorePalm } from "../../shared/ui";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
+import { tick } from "../../shared/haptics";
 
 // Current playlist as a wheel: the focused track large in the middle, two
 // neighbours above and below, smaller and dimmer towards the edge.
@@ -345,7 +346,9 @@ Page(
 
     activate() {
       const item = this.items[this.focus];
-      if (item) item.onClick();
+      if (!item) return;
+      tick();
+      item.onClick();
     },
 
     play(params) {

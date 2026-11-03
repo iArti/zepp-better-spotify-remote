@@ -32,6 +32,7 @@ import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
+import { tick, bump } from "../../shared/haptics";
 
 // onWristMotion event types
 const WRIST_PALM = 0;
@@ -586,11 +587,15 @@ Page(
 
     pause() {
       if (isWatchSource()) {
-        if (this.local.playing) this.local.toggle();
+        if (this.local.playing) {
+          tick();
+          this.local.toggle();
+        }
         return;
       }
       const s = this.state.player;
       if (!s || !s.playing) return;
+      tick();
       this.optimistic({ playing: false });
       this.command("pause");
     },
@@ -654,10 +659,12 @@ Page(
       if (isWatchSource()) return;
       const shuffle = localStorage.getItem(LIKE_SLOT_KEY, "like") === "shuffle";
       localStorage.setItem(LIKE_SLOT_KEY, shuffle ? "like" : "shuffle");
+      bump();
       this.optimistic({});
     },
 
     toggleShuffle() {
+      tick();
       if (isWatchSource()) {
         this.local.setShuffle(!this.local.shuffle);
         return;
@@ -679,6 +686,7 @@ Page(
       const s = this.state.player;
       if (!s || !s.trackId) return;
       const liked = !s.liked;
+      tick();
       this.optimistic({ liked });
       this.request({ method: liked ? "like" : "unlike", params: { id: s.trackId } }, { timeout: 8000 })
         .catch((e) => this.showError(e));
