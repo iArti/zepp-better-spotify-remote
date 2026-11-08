@@ -25,7 +25,7 @@ You need Node.js, Spotify Premium (the API won't control playback without it) an
    ```
    Pick your watch and scan the QR code in Zepp: Profile → Developer Mode → Scan.
 
-Wearing the watch on your right hand? Set `rightHandMode = true` in `shared/config.js` and rebuild: Up = pause, Down = next track, Select = switch screens. Icons are drawn by `tools/make_assets.py` (`python tools/make_assets.py`) if you want to tweak them.
+On watches with a shortcut button, it plays/pauses on a press and skips to the next track on a hold. Wearing the watch on your right hand? Set `rightHandMode = true` in `shared/config.js` and rebuild: Up = pause, Down = next track, Select = switch screens. Icons are drawn by `tools/make_assets.py` (`python tools/make_assets.py`) if you want to tweak them.
 
 ## Experimental: music from the watch
 

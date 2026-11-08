@@ -20,6 +20,7 @@ import {
   onWristMotion,
   WRIST_MOTION_LIFT,
   KEY_SELECT,
+  KEY_SHORTCUT,
   KEY_UP,
   KEY_DOWN,
   KEY_EVENT_CLICK,
@@ -363,7 +364,10 @@ Page(
     bindInput() {
       ignorePalm();
       onKey({
-        callback: (key, keyEvent) => (rightHandMode ? this.onKeyRightHand(key, keyEvent) : this.onKeyDefault(key, keyEvent)),
+        callback: (key, keyEvent) => {
+          if (key === KEY_SHORTCUT) return this.onKeyShortcut(keyEvent);
+          return rightHandMode ? this.onKeyRightHand(key, keyEvent) : this.onKeyDefault(key, keyEvent);
+        },
       });
       onGesture({
         callback: (gesture) => {
@@ -398,6 +402,14 @@ Page(
     },
 
     // Select: click = play/pause, long press = next track
+    // Shortcut key (two-button watches), in both modes: click = play/pause, hold = next
+    onKeyShortcut(keyEvent) {
+      if (keyEvent === KEY_EVENT_CLICK) this.togglePlay();
+      else if (keyEvent === KEY_EVENT_LONG_PRESS) this.command("next");
+      else return false;
+      return true;
+    },
+
     onKeyDefault(key, keyEvent) {
       if (key !== KEY_SELECT) return false;
       if (keyEvent === KEY_EVENT_CLICK) this.togglePlay();

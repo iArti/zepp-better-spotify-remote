@@ -25,7 +25,7 @@
    ```
    Выберите свои часы и отсканируйте QR-код в Zepp: Профиль → Developer Mode → Scan.
 
-Носите часы на правой руке — поставьте `rightHandMode = true` в `shared/config.js` и пересоберите: Up — пауза, Down — следующий трек, Select — переключение экранов. Иконки рисует `tools/make_assets.py` (`python tools/make_assets.py`), если захотите поменять.
+На часах с кнопкой-ярлыком (SHORTCUT) нажатие — пауза/play, удержание — следующий трек. Носите часы на правой руке — поставьте `rightHandMode = true` в `shared/config.js` и пересоберите: Up — пауза, Down — следующий трек, Select — переключение экранов. Иконки рисует `tools/make_assets.py` (`python tools/make_assets.py`), если захотите поменять.
 
 ## Экспериментально: музыка с часов
 
