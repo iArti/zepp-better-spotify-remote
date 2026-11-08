@@ -32,7 +32,7 @@ import { deviceIcon } from "../../shared/devices";
 import { rightHandMode, applyOptimizations } from "../../shared/config";
 import { getLocal, isWatchSource } from "../../shared/local";
 import { t } from "../../shared/i18n";
-import { tick, bump } from "../../shared/haptics";
+import { tick, bump, doubleTick } from "../../shared/haptics";
 
 // onWristMotion event types
 const WRIST_PALM = 0;
@@ -281,6 +281,8 @@ Page(
         clearTimeout(this.tapTimer);
         this.tapTimer = null;
         const forward = e.x >= px(W) / 2;
+        // The screensaver is used without looking: feel the action
+        doubleTick();
         this.flash(forward ? "next.png" : "prev.png");
         this.command(forward ? "next" : "prev");
         return;
@@ -289,6 +291,7 @@ Page(
       this.tapTimer = setTimeout(() => {
         this.tapTimer = null;
         if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) return;
+        tick();
         const s = this.state.player;
         this.flash(s && s.playing ? "pause.png" : "play.png");
         this.togglePlay();

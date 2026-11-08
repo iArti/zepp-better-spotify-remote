@@ -24,6 +24,14 @@ export function tick() {
   click();
 }
 
+// Two clicks in a row (track change on the screensaver)
+const DOUBLE_GAP_MS = 140;
+
+export function doubleTick() {
+  click();
+  setTimeout(click, DOUBLE_GAP_MS);
+}
+
 // A hold went through, the finger can be lifted
 export function bump() {
   click();
