@@ -1,26 +1,30 @@
-import { Vibrator, VIBRATOR_SCENE_SHORT_LIGHT, VIBRATOR_SCENE_SHORT_MIDDLE } from "@zos/sensor";
+import { Vibrator } from "@zos/sensor";
 
-// Short buzzes confirming an action that has no other feedback
+// One short "key click" pulse confirming an action that has no other feedback.
+// Chosen on the watch with a probe: the VIBRATOR_SCENE_* modes buzz twice and
+// too hard on the Active 3 Premium motor.
 let vibrator = null;
+let clickType = null;
 
-function buzz(type) {
+function click() {
   try {
-    if (!vibrator) vibrator = new Vibrator();
-    // Scene constants go to setMode; start([...]) wants getType() values instead
-    vibrator.stop();
-    vibrator.setMode(type);
-    vibrator.start();
+    if (!vibrator) {
+      vibrator = new Vibrator();
+      clickType = vibrator.getType().KEYCODE_CLICK;
+    }
+    // start([...]) takes getType() values, not VIBRATOR_SCENE_* constants
+    vibrator.start([{ type: clickType }]);
   } catch (e) {
     console.log("vibrate failed", e);
   }
 }
 
-// Lightest pulse (20 ms): a tap did something
+// A tap did something
 export function tick() {
-  buzz(VIBRATOR_SCENE_SHORT_LIGHT);
+  click();
 }
 
-// Medium pulse (20 ms): a hold went through, the finger can be lifted
+// A hold went through, the finger can be lifted
 export function bump() {
-  buzz(VIBRATOR_SCENE_SHORT_MIDDLE);
+  click();
 }
