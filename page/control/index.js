@@ -237,8 +237,6 @@ Page(
       this.background(top, "vignette_light.png");
       const tapLayer = this.lastWidget;
       this.saverClock = shadowedText(170, top + 10, 140, 40, "", { size: 32, color: MINT });
-      // TEMP debug: last touch / wrist events on the screensaver
-      this.debugText = text(60, top + 56, W - 120, 60, "", { size: 16, color: 0xffff00, wrap: true });
       this.saverTitle = shadowedText(SAVER_TEXT_X, top + 342, W - 2 * SAVER_TEXT_X, 60, "", { size: SAVER_TITLE_SIZE });
       this.saverArtist = shadowedText(SAVER_TEXT_X, top + 404, W - 2 * SAVER_TEXT_X, 44, "", {
         size: SAVER_ARTIST_SIZE,
@@ -263,7 +261,8 @@ Page(
       });
       this.hideFlash();
 
-      [tapLayer, this.saverClock.main, this.saverTitle.main, this.saverArtist.main].forEach((w) => {
+      // The pause icon stays in the middle while paused and takes touches too
+      [tapLayer, this.flashBg, this.flashImg, this.saverClock.main, this.saverTitle.main, this.saverArtist.main].forEach((w) => {
         w.addEventListener(event.CLICK_DOWN, (e) => {
           this.tapDown = { x: e.x, y: e.y };
         });
@@ -271,14 +270,7 @@ Page(
       });
     },
 
-    debug(msg) {
-      const now = Date.now() % 100000;
-      this.debugLines = [...(this.debugLines || []).slice(-2), `${now} ${msg}`];
-      if (this.debugText) setText(this.debugText, this.debugLines.join("  "));
-    },
-
     onSaverTap(e) {
-      this.debug("up");
       const down = this.tapDown;
       this.tapDown = null;
       if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) return;
@@ -296,11 +288,7 @@ Page(
 
       this.tapTimer = setTimeout(() => {
         this.tapTimer = null;
-        if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) {
-          this.debug("tap blocked");
-          return;
-        }
-        this.debug("tap fire");
+        if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) return;
         const s = this.state.player;
         this.flash(s && s.playing ? "pause.png" : "play.png");
         this.togglePlay();
@@ -396,7 +384,6 @@ Page(
     // Palm over the screen = pause (never resumes); raising the wrist = refresh now
     onWristMotion({ type, motion }) {
       console.log("wrist motion", type, motion);
-      this.debug(`wrist ${type}/${motion}`);
       if (type === WRIST_PALM) {
         this.palmAt = Date.now();
         this.tapDown = null;
