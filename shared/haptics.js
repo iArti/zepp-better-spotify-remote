@@ -6,7 +6,10 @@ let vibrator = null;
 function buzz(type) {
   try {
     if (!vibrator) vibrator = new Vibrator();
-    vibrator.start([{ type }]);
+    // Scene constants go to setMode; start([...]) wants getType() values instead
+    vibrator.stop();
+    vibrator.setMode(type);
+    vibrator.start();
   } catch (e) {
     console.log("vibrate failed", e);
   }
