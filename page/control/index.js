@@ -50,6 +50,9 @@ const MAX_BRIGHT_MS = 2147483000;
 // Screensaver taps: one = play/pause, two = prev (left half) / next (right half)
 const DOUBLE_TAP_MS = 300;
 const TAP_SLOP = 24; // finger movement that still counts as a tap, not a swipe
+// A palm over the screensaver is also a touch: ignore taps around it, or the
+// tap toggles playback right back
+const PALM_TAP_GUARD_MS = 1000;
 // Holding the like button swaps it with a shuffle toggle (Spotify; remembered)
 const LIKE_HOLD_MS = 600;
 const LIKE_SLOT_KEY = "likeSlot"; // "like" or "shuffle"
@@ -269,6 +272,7 @@ Page(
     onSaverTap(e) {
       const down = this.tapDown;
       this.tapDown = null;
+      if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) return;
       // Ignore swipes between screens
       if (down && (Math.abs(e.x - down.x) > px(TAP_SLOP) || Math.abs(e.y - down.y) > px(TAP_SLOP))) return;
 
@@ -283,6 +287,7 @@ Page(
 
       this.tapTimer = setTimeout(() => {
         this.tapTimer = null;
+        if (Date.now() - (this.palmAt || 0) < PALM_TAP_GUARD_MS) return;
         const s = this.state.player;
         this.flash(s && s.playing ? "pause.png" : "play.png");
         this.togglePlay();
@@ -378,7 +383,13 @@ Page(
     // Palm over the screen = pause (never resumes); raising the wrist = refresh now
     onWristMotion({ type, motion }) {
       console.log("wrist motion", type, motion);
-      if (type === WRIST_PALM) this.pause();
+      if (type === WRIST_PALM) {
+        this.palmAt = Date.now();
+        this.tapDown = null;
+        if (this.tapTimer) clearTimeout(this.tapTimer);
+        this.tapTimer = null;
+        this.pause();
+      }
       else if (type === WRIST_EVENT && motion === WRIST_MOTION_LIFT && !isWatchSource()) this.refresh();
     },
 
