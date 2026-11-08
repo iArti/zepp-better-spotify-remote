@@ -53,6 +53,9 @@ const TAP_SLOP = 24; // finger movement that still counts as a tap, not a swipe
 // Holding the like button swaps it with a shuffle toggle (Spotify; remembered)
 const LIKE_HOLD_MS = 600;
 const LIKE_SLOT_KEY = "likeSlot"; // "like" or "shuffle"
+// Spotify keeps reporting the old play/like/shuffle state for a moment after a
+// command (and a poll may already be in flight): hold the expected values this long
+const PENDING_MS = 3000;
 // Page dots on the screensaver fade out after this
 const SAVER_DOTS_MS = 2000;
 // Screensaver text: no marquee, no ellipsis; long lines run off the right edge into the vignette
@@ -126,6 +129,7 @@ Page(
       timers: [],
       screenIndex: CONTROLS,
       keepAwake: null,
+      pending: null, // { patch, trackId, until }: expected values after a command
     },
 
     build() {
@@ -494,6 +498,7 @@ Page(
       this.state.busy = true;
       this.request({ method: "state", params: { haveCover: localStorage.getItem("coverId", "") } }, { timeout: 8000 })
         .then(({ result }) => {
+          result = this.withPending(result);
           // The source may have switched to the watch while the request was in flight
           if (!isWatchSource()) this.render(result);
           getApp().globalData.state = result;
@@ -615,8 +620,36 @@ Page(
     optimistic(patch) {
       const s = this.state.player;
       if (!s) return;
+      if (Object.keys(patch).length && !s.local) {
+        const prev = this.state.pending;
+        const kept = prev && Date.now() < prev.until && prev.trackId === s.trackId ? prev.patch : {};
+        this.state.pending = { patch: { ...kept, ...patch }, trackId: s.trackId, until: Date.now() + PENDING_MS };
+      }
       const elapsed = s.playing ? Date.now() - this.state.lastSync : 0;
       this.render({ ...s, progress: s.progress + elapsed, ...patch });
+    },
+
+    // Polled state with the values of a recent command still on top, until
+    // Spotify reports them itself or the grace time runs out
+    withPending(s) {
+      const p = this.state.pending;
+      if (!p) return s;
+      if (Date.now() > p.until) {
+        this.state.pending = null;
+        return s;
+      }
+      const left = {};
+      Object.keys(p.patch).forEach((k) => {
+        // A like belongs to the track it was made on
+        if (k === "liked" && s.trackId !== p.trackId) return;
+        if (s[k] !== p.patch[k]) left[k] = p.patch[k];
+      });
+      if (!Object.keys(left).length) {
+        this.state.pending = null;
+        return s;
+      }
+      p.patch = left;
+      return { ...s, ...left };
     },
 
     likeSlotIsShuffle(s) {
