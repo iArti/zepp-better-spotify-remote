@@ -247,10 +247,46 @@ function smallestImage(images) {
   return images.slice().sort((a, b) => (a.width || 0) - (b.width || 0))[0].url;
 }
 
+// Active Spotify device from the last state poll
+let lastDevice = null;
+
+// Spotify plays on this phone (the one SimpleZepp runs on). Spotify's API can't
+// change the volume of the phone it runs on, which tells it apart from other phones.
+function playsOnThisPhone() {
+  return !!(lastDevice && lastDevice.type === "Smartphone" && lastDevice.supportsVolume === false);
+}
+
+const BRIDGE_COMMAND_TIMEOUT_MS = 1500;
+
+// play/pause/next/prev: through SimpleZepp straight to the phone's Spotify when it
+// plays there, otherwise (or if the bridge fails) through the Web API
+async function transport(method, viaWebApi) {
+  if (!playsOnThisPhone() || !bridge.paired()) return viaWebApi();
+  let timer = null;
+  try {
+    await Promise.race([
+      bridge.media(method),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("simplezepp_timeout")), BRIDGE_COMMAND_TIMEOUT_MS);
+      }),
+    ]);
+    return null;
+  } catch (e) {
+    console.log("bridge transport failed", method, e && e.message);
+    // A late bridge request may still go through: repeating play/pause is
+    // harmless, a second skip is not
+    if (e && e.message === "simplezepp_timeout" && (method === "next" || method === "prev")) throw e;
+    return viaWebApi();
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const handlers = {
   async state({ haveCover }) {
     const player = await spotify("GET", "/me/player?additional_types=episode");
     const state = compactState(player);
+    lastDevice = state.device || null;
     if (state.trackId) {
       try {
         const contains = await spotify("GET", `/me/tracks/contains?ids=${state.trackId}`);
@@ -267,16 +303,16 @@ const handlers = {
     return state;
   },
   play() {
-    return spotify("PUT", "/me/player/play");
+    return transport("play", () => spotify("PUT", "/me/player/play"));
   },
   pause() {
-    return spotify("PUT", "/me/player/pause");
+    return transport("pause", () => spotify("PUT", "/me/player/pause"));
   },
   next() {
-    return spotify("POST", "/me/player/next");
+    return transport("next", () => spotify("POST", "/me/player/next"));
   },
   prev() {
-    return spotify("POST", "/me/player/previous");
+    return transport("prev", () => spotify("POST", "/me/player/previous"));
   },
   shuffle({ on }) {
     return spotify("PUT", `/me/player/shuffle?state=${on ? "true" : "false"}`);

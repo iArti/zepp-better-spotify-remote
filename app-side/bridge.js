@@ -1,6 +1,8 @@
 // Optional SimpleZepp integration (https://github.com/iArti/SimpleZepp).
 // Its phone app serves an HTTP bridge on the loopback interface; we use it only for
-// the phone's media volume, which Spotify's API can't change on smartphones.
+// the phone's media volume, which Spotify's API can't change on smartphones, and as
+// a fast path for play/pause/next/prev when Spotify plays on this phone (straight to
+// its media session instead of a round trip through Spotify's servers).
 // If SimpleZepp is not installed, every call here fails fast and nothing changes.
 const BASE = "http://127.0.0.1:47821";
 const TOKEN_KEY = "simplezepp_token";
@@ -8,6 +10,16 @@ const AUDIO_STATUS = "/status/audio";
 const AUDIO_VOLUME = "/status/audio/volume";
 const PAIR_TIMEOUT_MS = 90 * 1000;
 const EVENTS_WAIT_MS = 3000;
+const SPOTIFY_PKG = "com.spotify.music";
+const MEDIA_ACTIONS = {
+  play: "/media/action/play",
+  pause: "/media/action/pause",
+  next: "/media/action/skip",
+  prev: "/media/action/previous",
+};
+// The phone attaches to the player asynchronously; renew it now and then
+const MEDIA_CONNECT_EVERY_MS = 60 * 1000;
+const MEDIA_CONNECT_SETTLE_MS = 300;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -51,6 +63,7 @@ async function http(path, method = "GET", body) {
 }
 
 let pairing = false;
+let mediaConnectedAt = 0;
 // Last known music stream volume of the phone: { current, min, max }
 let stream = null;
 
@@ -78,6 +91,28 @@ function toPercent(s) {
 }
 
 export const bridge = {
+  paired() {
+    return !!getToken();
+  },
+
+  // Sends a transport command to Spotify's media session on this phone.
+  // Resolves once SimpleZepp accepted it (not when Spotify acted on it).
+  async media(method) {
+    const path = MEDIA_ACTIONS[method];
+    if (!path) throw new Error("unknown_media_action");
+    if (Date.now() - mediaConnectedAt > MEDIA_CONNECT_EVERY_MS) {
+      await http("/message", "POST", { path: "/media/connect", text: SPOTIFY_PKG });
+      mediaConnectedAt = Date.now();
+      await sleep(MEDIA_CONNECT_SETTLE_MS);
+    }
+    try {
+      await http("/message", "POST", { path });
+    } catch (e) {
+      mediaConnectedAt = 0;
+      throw e;
+    }
+  },
+
   // { available, paired, pairing }; available = the bridge answered at all
   async status() {
     try {
