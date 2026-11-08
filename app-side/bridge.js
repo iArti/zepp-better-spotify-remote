@@ -10,6 +10,8 @@ const AUDIO_STATUS = "/status/audio";
 const AUDIO_VOLUME = "/status/audio/volume";
 const PAIR_TIMEOUT_MS = 90 * 1000;
 const EVENTS_WAIT_MS = 3000;
+// Total wait for the volume answer; the watch request times out at 9 s
+const VOLUME_ANSWER_MS = 7000;
 const SPOTIFY_PKG = "com.spotify.music";
 const MEDIA_ACTIONS = {
   play: "/media/action/play",
@@ -136,8 +138,12 @@ export const bridge = {
   // Note: /events is shared with the SimpleZepp watch app, avoid running both at once.
   async volume() {
     await http("/message", "POST", { path: AUDIO_STATUS, text: "MUSIC" });
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const r = await http("/events?wait=" + EVENTS_WAIT_MS);
+    // Other messages (player state once the media fast path is connected) share
+    // the queue and come back without waiting: keep reading until the answer shows
+    const deadline = Date.now() + VOLUME_ANSWER_MS;
+    while (Date.now() < deadline) {
+      const wait = Math.max(500, Math.min(EVENTS_WAIT_MS, deadline - Date.now()));
+      const r = await http("/events?wait=" + wait);
       const msg = (r.messages || []).filter((m) => m.path === AUDIO_STATUS && m.text).pop();
       if (msg) {
         const s = parse(msg.text);

@@ -27,6 +27,7 @@ const CARD_ICON = 64;
 const CARDS_EDGE = 26; // left inset when the row scrolls
 const SCROLL_TAP_GUARD_MS = 400; // a tap right after scrolling is the end of the scroll
 const PAIR_POLL_MS = 2000;
+const BRIDGE_RETRY_MS = 1000;
 const PAIR_POLL_LIMIT = 48; // ~95 s, a bit longer than the phone-side pairing window
 
 Page(
@@ -269,14 +270,21 @@ Page(
       Object.assign(b, st);
       if (st.paired && wantsBridge()) {
         if (!wasPaired || !this.volume.viaBridge) this.initVolume();
-        this.request({ method: "bridge_volume" }, { timeout: 9000 })
-          .then(({ result }) => {
-            b.volume = result;
-            if (this.volume.viaBridge) this.volume.setKnown(result);
-          })
-          .catch((e) => console.log("bridge volume failed", e));
+        this.askBridgeVolume(1);
       }
       this.render();
+    },
+
+    askBridgeVolume(retries) {
+      this.request({ method: "bridge_volume" }, { timeout: 9000 })
+        .then(({ result }) => {
+          getBridge().volume = result;
+          if (this.volume.viaBridge) this.volume.setKnown(result);
+        })
+        .catch((e) => {
+          console.log("bridge volume failed", e);
+          if (retries > 0) this.volumeRetry = setTimeout(() => this.askBridgeVolume(retries - 1), BRIDGE_RETRY_MS);
+        });
     },
 
     pairBridge() {
@@ -343,6 +351,7 @@ Page(
 
     onDestroy() {
       if (this.pairTimer) clearTimeout(this.pairTimer);
+      if (this.volumeRetry) clearTimeout(this.volumeRetry);
       if (this.volume) this.volume.flush();
       try {
         offKey();
